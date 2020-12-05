@@ -3,10 +3,8 @@
   "private": true,
   "version": "0.0.1",
   "license": "MIT",
-  "dependencies": {},
   "scripts": {
-    "dist": "node prepare-dist.js",
-    "build": "babel dist -d dist"
+    "dist": "node prepare-dist.js"
   },
   "devDependencies": {
     "terser": "^5.5.1"

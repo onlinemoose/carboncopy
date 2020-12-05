@@ -16,7 +16,8 @@ const prepareDist = async () => {
     fs.copyFileSync(path.join(__dirname, 'auth-success.html'), path.join(__dirname, 'dist', 'auth-success.html'));
 
     let mainJS = fs.readFileSync(path.join(__dirname, 'main.js'), { encoding: 'utf8' });
-    var result = await minify(mainJS, { mangle: { properties: true, } });
+    //    var result = await minify(mainJS, { mangle: { properties: true, } });
+    var result = await minify(mainJS);
 
     fs.writeFileSync(path.join(__dirname, 'dist', 'main.js'), result.code);
 
