@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+        body {
+            font: 14px OpenSans, Arial, Helvetica, sans-serif;
+        }
+
+        .miro-h3 {
+            font-style: normal;
+            font-stretch: normal;
+            letter-spacing: normal;
+            font-size: 20px;
+            line-height: 28px;
+            font-weight: 600;
+        }
+
+        .miro-btn {
+            box-sizing: border-box;
+            display: inline-block;
+            vertical-align: top;
+            border: 1px solid;
+            padding: 14px 24px 16px;
+            font-size: 16px;
+            border-radius: 4px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            text-align: center;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .miro-btn:focus {
+            outline: none;
+        }
+
+        .miro-btn.miro-btn--disabled,
+        .miro-btn[disabled] {
+            pointer-events: none;
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .miro-btn--primary {
+            color: #fff;
+            border-color: #4262ff;
+            background-color: #4262ff;
+        }
+
+        .miro-btn--primary:not(.miro-btn--disabled):not([disabled]):not(.miro-btn--loading):not(:active):hover {
+            border-color: #455bed;
+            background-color: #455bed;
+        }
+
+        .miro-btn--primary:not(.miro-btn--disabled):active,
+        .miro-btn--primary.miro-btn--loading,
+        .miro-btn--primary:not(.miro-btn--disabled).miro-btn--active {
+            border-color: #3d51d4;
+            background-color: #3d51d4;
+        }
+
+        .miro-btn--primary.miro-btn--loading::before {
+            border-color: transparent #fff #fff #fff;
+        }
+
+        .miro-btn--medium {
+            padding: 14px 24px 16px;
+            min-width: 100px;
+            font-size: 16px;
+            height: 48px;
+        }
+
+        .miro-btn:not(.ng-hide)+.miro-btn--medium:not(.miro-btn--pull-right) {
+            margin-left: 16px;
+        }
+
+        .miro-btn--medium .miro-btn__icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2 class="miro-h3" style="margin: 15px;">Please authorize Carbon Copy</h2>
+    <button class="miro-btn miro-btn--primary miro-btn--medium"
+        style="float: right;margin: 10px; margin-top: 70px;">Authorize</button>
+    <script src="https://miro.com/app/static/sdk.1.1.js"></script>
+    <script>
+        document.querySelector('button').addEventListener('click', function () {
+            const authorizeOptions = {
+                response_type: 'token',
+                redirect_uri: 'https://' + window.location.host + '/auth-success.html',
+            }
+            miro
+                .authorize(authorizeOptions)
+                .then(() => miro.getToken())
+                .then((token) => {
+                    if (token) {
+                        miro.board.ui.closeModal('success')
+                    } else {
+                        console.log('Something went wrong')
+                    }
+                })
+        })
+    </script>
+</body>
+
+</html>
