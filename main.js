@@ -261,7 +261,7 @@ miro.onReady(async () => {
   miro.initialize({
     extensionPoints: {
       getWidgetMenuItems: async (widgets, editmode) => {
-
+        console.log(performance.now());
         let selectedWidgets = await miro.board.selection.get();
         let selectedWidget = selectedWidgets[0];
 
@@ -365,7 +365,7 @@ miro.onReady(async () => {
         if (selectedWidgets && selectedWidgets.length > 1 && selectedWithGroup.length === selectedWidgets.length) {
           widgetArray.push(groupSyncButton);
         }
-
+        console.log(performance.now());
         return widgetArray;
       },
 
