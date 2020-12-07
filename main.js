@@ -137,6 +137,84 @@ const syncImageWidget = async (widgetToSync, allSyncableWidgets) => {
 
 }
 
+const syncPosition = async (syncableWidgets) => {
+
+  let syncGroupIDs = [];
+  syncableWidgets.map(widget => {
+    if (!syncGroupIDs.includes(widget.metadata[appId].syncGroupID)) {
+      syncGroupIDs.push(widget.metadata[appId].syncGroupID);
+    }
+    return 0;
+  });
+
+  let prevWidgetStateIDs = window.miroSyncData.filter(widget => syncGroupIDs.includes(widget.id));
+
+  syncGroupIDs.map(widgetID => {
+    if (!prevWidgetStateIDs.includes(widgetID)) {
+      let newWidget = syncableWidgets.filter(wid => wid.id === widgetID);
+      window.miroSyncData = [...window.miroSyncData, ...newWidget];
+    }
+    return 0;
+  });
+
+  for (let i = 0; i < syncGroupIDs.length; i++) {
+
+    let widgets = syncableWidgets.filter(widget => widget.metadata[appId].syncGroupID === syncGroupIDs[i]);
+
+    let modifiedWidget = widgets.find(widget => {
+
+      let oldWidget = window.miroSyncData.find(old => old.id === widget.id);
+
+      return (widget.x !== oldWidget.x || widget.y !== oldWidget.y);
+
+    });
+
+    if (modifiedWidget) {
+
+      let oldWidget = window.miroSyncData.find(old => old.id === modifiedWidget.id);
+
+      let xChange = modifiedWidget.x - oldWidget.x;
+      let yChange = modifiedWidget.y - oldWidget.y;
+
+      if (xChange || yChange) {
+
+        let widgetsForUpdate = widgets.filter(widget => widget.id !== modifiedWidget.id
+          && widget.metadata[appId].syncGroupID === modifiedWidget.metadata[appId].syncGroupID);
+
+        let updateData = [];
+        for (let j = 0; j < widgetsForUpdate.length; j++) {
+
+          updateData.push({
+            ...widgetsForUpdate[j],
+            x: widgetsForUpdate[j].x + xChange,
+            y: widgetsForUpdate[j].y + yChange
+          });
+
+          await miro.board.widgets.update(updateData[j]);
+        }
+
+        let updatedIds = updateData.map(wid => wid.id);
+        let newMiroSyncData = window.miroSyncData.map(item => {
+          if (updatedIds.includes(item.id)) {
+            return updateData.find(updatedWidget => updatedWidget.id === item.id);
+          }
+          else if (item.id === modifiedWidget.id) {
+            return modifiedWidget;
+          }
+          else {
+            return item;
+          }
+        });
+        window.miroSyncData = newMiroSyncData;
+        break;
+      }
+
+    }
+
+  };
+
+}
+
 const handleSync = async () => {
 
   try {
@@ -170,6 +248,8 @@ const handleSync = async () => {
       }
 
     };
+
+    await syncPosition(allWidgets.filter(widget => widget.metadata[appId]?.syncGroupID));
 
     // Tag sync for Card and Sticker
     let tagSyncableWidgets = syncableWidgets.filter(widget => (widget.type === "CARD" || widget.type === "STICKER"));
@@ -261,7 +341,7 @@ miro.onReady(async () => {
   miro.initialize({
     extensionPoints: {
       getWidgetMenuItems: async (widgets, editmode) => {
-        console.log(performance.now());
+
         let selectedWidgets = await miro.board.selection.get();
         let selectedWidget = selectedWidgets[0];
 
@@ -334,11 +414,12 @@ miro.onReady(async () => {
 
             let currSelectedWidgets = await miro.board.selection.get();
             let metadata = {};
-            let syncGroupID = new Date().getTime();
+            let syncGroup = new Date().getTime();
             for (let i = 0; i < currSelectedWidgets.length; i++) {
               metadata[appId] = {
                 ...(currSelectedWidgets[i].metadata[appId] || {}),
-                syncGroupID: (selectedWidget.metadata[appId]?.syncGroupID ? "" : syncGroupID)
+                syncGroupID: (selectedWidget.metadata[appId]?.syncGroupID ? "" : new Date().getTime()),
+                syncGroup: (selectedWidget.metadata[appId]?.syncGroup ? "" : syncGroup)
               };
               await miro.board.widgets.update(
                 {
@@ -365,7 +446,7 @@ miro.onReady(async () => {
         if (selectedWidgets && selectedWidgets.length > 1 && selectedWithGroup.length === selectedWidgets.length) {
           widgetArray.push(groupSyncButton);
         }
-        console.log(performance.now());
+
         return widgetArray;
       },
 
