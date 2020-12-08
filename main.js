@@ -59,9 +59,12 @@ const syncText = async (widgetsToSync, type) => {
         widget.style.stickerBackgroundColor !== oldState.style.stickerBackgroundColor);
     }
     else if (widget.type === "SHAPE") {
-      return (widget.text !== oldState.text || widget.plainText !== oldState.plainText || !compareAllValues(widget.style, oldState.style, ["shapeType"]));
+      return (widget.text !== oldState.text || widget.plainText !== oldState.plainText || !compareAllValues(widget.style, oldState.style, ["shapeType", "fontSize"]));
     }
-    else { // "TEXT", "STICKER", "SHAPE"
+    else if (widget.type === "TEXT") {
+      return (widget.text !== oldState.text || widget.plainText !== oldState.plainText || !compareAllValues(widget.style, oldState.style));
+    }
+    else {
       return (widget.text !== oldState.text || widget.plainText !== oldState.plainText);
     }
   });
@@ -99,7 +102,15 @@ const syncText = async (widgetsToSync, type) => {
           ...widget,
           text: updatedWidget.text,
           plainText: updatedWidget.plainText,
-          style: { ...updatedWidget.style, shapeType: widget.style.shapeType }
+          style: { ...updatedWidget.style, shapeType: widget.style.shapeType, fontSize: widget.style.fontSize }
+        });
+      }
+      else if (type === "TEXT") {
+        newWidgetData.push({
+          ...widget,
+          text: updatedWidget.text,
+          plainText: updatedWidget.plainText,
+          style: updatedWidget.style
         });
       }
       else {
@@ -147,9 +158,10 @@ const syncPosition = async (syncableWidgets) => {
     return 0;
   });
 
-  let prevWidgetStateIDs = window.miroSyncData.filter(widget => syncGroupIDs.includes(widget.id));
+  let syncableWidgetsIDs = syncableWidgets.map(widget => widget.id);
+  let prevWidgetStateIDs = window.miroSyncData.map(widget => widget.id);
 
-  syncGroupIDs.map(widgetID => {
+  syncableWidgetsIDs.map(widgetID => {
     if (!prevWidgetStateIDs.includes(widgetID)) {
       let newWidget = syncableWidgets.filter(wid => wid.id === widgetID);
       window.miroSyncData = [...window.miroSyncData, ...newWidget];
@@ -165,53 +177,64 @@ const syncPosition = async (syncableWidgets) => {
 
       let oldWidget = window.miroSyncData.find(old => old.id === widget.id);
 
-      return (widget.x !== oldWidget.x || widget.y !== oldWidget.y);
+      return (widget.x !== oldWidget.x || widget.y !== oldWidget.y || widget.height !== oldWidget.height || widget.width !== oldWidget.width);
 
     });
 
-    if (modifiedWidget) {
+    if (modifiedWidget && modifiedWidget.id !== "0") {
+      console.log(modifiedWidget);
 
       let oldWidget = window.miroSyncData.find(old => old.id === modifiedWidget.id);
 
       let xChange = modifiedWidget.x - oldWidget.x;
       let yChange = modifiedWidget.y - oldWidget.y;
+      let widthChange = modifiedWidget.width - oldWidget.width;
+      let heightChange = modifiedWidget.height - oldWidget.height;
 
-      if (xChange || yChange) {
+      let widgetFromSameGroup = syncableWidgets.find(widget => widget.groupId === modifiedWidget.groupId && widget.id !== modifiedWidget.id);
+
+      let oldWidgetFromSameGroup = window.miroSyncData.find(old => old.id === widgetFromSameGroup.id);
+
+      let groupXChange = widgetFromSameGroup.x - oldWidgetFromSameGroup.x;
+      let groupYChange = widgetFromSameGroup.y - oldWidgetFromSameGroup.y;
+
+      console.log(xChange, yChange, widthChange, heightChange, groupXChange, groupYChange, widgetFromSameGroup, oldWidgetFromSameGroup);
+
+      if ((xChange || yChange || widthChange || heightChange) && (groupXChange === 0 && groupYChange === 0)) {
 
         let widgetsForUpdate = widgets.filter(widget => widget.id !== modifiedWidget.id
           && widget.metadata[appId].syncGroupID === modifiedWidget.metadata[appId].syncGroupID);
 
+
         let updateData = [];
         for (let j = 0; j < widgetsForUpdate.length; j++) {
 
-          updateData.push({
+          let data = {
             ...widgetsForUpdate[j],
             x: widgetsForUpdate[j].x + xChange,
             y: widgetsForUpdate[j].y + yChange
-          });
+          }
+
+          if (widthChange) {
+            data = { ...data, width: widgetsForUpdate[j].width + widthChange };
+          }
+
+          if (heightChange) {
+            data = { ...data, height: widgetsForUpdate[j].height + heightChange };
+          }
+
+          updateData.push(data);
 
           await miro.board.widgets.update(updateData[j]);
         }
-
-        let updatedIds = updateData.map(wid => wid.id);
-        let newMiroSyncData = window.miroSyncData.map(item => {
-          if (updatedIds.includes(item.id)) {
-            return updateData.find(updatedWidget => updatedWidget.id === item.id);
-          }
-          else if (item.id === modifiedWidget.id) {
-            return modifiedWidget;
-          }
-          else {
-            return item;
-          }
-        });
-        window.miroSyncData = newMiroSyncData;
         break;
       }
 
     }
 
   };
+
+  window.miroSyncData = await miro.board.widgets.get();
 
 }
 
@@ -414,12 +437,10 @@ miro.onReady(async () => {
 
             let currSelectedWidgets = await miro.board.selection.get();
             let metadata = {};
-            let syncGroup = new Date().getTime();
             for (let i = 0; i < currSelectedWidgets.length; i++) {
               metadata[appId] = {
                 ...(currSelectedWidgets[i].metadata[appId] || {}),
-                syncGroupID: (selectedWidget.metadata[appId]?.syncGroupID ? "" : new Date().getTime()),
-                syncGroup: (selectedWidget.metadata[appId]?.syncGroup ? "" : syncGroup)
+                syncGroupID: (selectedWidget.metadata[appId]?.syncGroupID ? "" : new Date().getTime())
               };
               await miro.board.widgets.update(
                 {
