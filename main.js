@@ -9,7 +9,7 @@ let selectIcon =
 
 var appId;
 
-const syncWidgets = ["TEXT", "STICKER", "SHAPE", "CARD", "IMAGE"]; //line is another supported widget but doesn't need sync
+const syncWidgets = ["TEXT", "STICKER", "SHAPE", "CARD", "LINE"]; //IMAGE is another supported widget but there is a issue on metadata update
 //miro.showNotification("Select widgets")
 
 const compareAllValues = (obj1, obj2, ignoreKeys = []) => {
@@ -64,6 +64,9 @@ const syncText = async (widgetsToSync, type) => {
     else if (widget.type === "TEXT") {
       return (widget.text !== oldState.text || widget.plainText !== oldState.plainText || !compareAllValues(widget.style, oldState.style));
     }
+    else if (widget.type === "LINE") {
+      return !compareAllValues(widget.style, oldState.style);
+    }
     else {
       return (widget.text !== oldState.text || widget.plainText !== oldState.plainText);
     }
@@ -110,6 +113,12 @@ const syncText = async (widgetsToSync, type) => {
           ...widget,
           text: updatedWidget.text,
           plainText: updatedWidget.plainText,
+          style: updatedWidget.style
+        });
+      }
+      else if (type === "LINE") {
+        newWidgetData.push({
+          ...widget,
           style: updatedWidget.style
         });
       }
@@ -264,6 +273,8 @@ const handleSync = async () => {
         case "SHAPE": await syncText(widgets, widgets[0].type);
           break;
         case "CARD": await syncText(widgets, widgets[0].type);
+          break;
+        case "LINE": await syncText(widgets, widgets[0].type);
           break;
         case "IMAGE": await syncImageWidget(widgets);
           break;
