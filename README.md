@@ -1,4 +1,4 @@
-# carboncopy
+# Lean Stories
 A plugin for Miro boards to build lean stories
 
 # Install dependencies
