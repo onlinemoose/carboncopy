@@ -1,10 +1,10 @@
 {
-  "name": "carbon-copy",
+  "name": "lean-stories",
   "private": true,
   "version": "0.0.1",
   "license": "MIT",
   "scripts": {
-    "dist": "node prepare-dist.js"
+    "dist": "node prepare-dist.js && firebase deploy"
   },
   "devDependencies": {
     "terser": "^5.5.1"

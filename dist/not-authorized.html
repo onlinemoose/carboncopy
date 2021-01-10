@@ -85,11 +85,13 @@
 </head>
 
 <body>
-    <h2 class="miro-h3" style="margin: 15px;">Please authorize Carbon Copy</h2>
+    <script type="text/javascript" src="util.js"></script>
+    <h2 id="appName" class="miro-h3" style="margin: 15px;"></h2>
     <button class="miro-btn miro-btn--primary miro-btn--medium"
         style="float: right;margin: 10px; margin-top: 70px;">Authorize</button>
     <script src="https://miro.com/app/static/sdk.1.1.js"></script>
     <script>
+        document.getElementById("appName").innerText = "Please authorize " + getAppName();
         document.querySelector('button').addEventListener('click', function () {
             const authorizeOptions = {
                 response_type: 'token',
