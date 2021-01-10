@@ -1,1 +1,1 @@
-const appName="Lean Stories",getAppName=()=>appName,compareAllValues=(e,a,l=[])=>!Object.keys(e).find((p=>e[p]!==a[p]&&!l.includes(p))),allEqual=e=>e.every((a=>a===e[0]));
+const appName="Lean Stories+",getAppName=()=>appName,compareAllValues=(e,a,l=[])=>!Object.keys(e).find((p=>e[p]!==a[p]&&!l.includes(p))),allEqual=e=>e.every((a=>a===e[0]));

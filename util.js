@@ -1,6 +1,6 @@
 
 //appName can be one of [Lean Stories, Carbon Copy, Lean Stories+]
-const appName = "Lean Stories";
+const appName = "Lean Stories+";
 
 const getAppName = () => {
     return appName;
