@@ -16,7 +16,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "script-src 'self' https://miro.com"
+            "value": "script-src 'self' 'unsafe-inline' https://miro.com"
           },
           {
             "key": "Referrer-Policy",
