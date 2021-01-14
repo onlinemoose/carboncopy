@@ -15,8 +15,10 @@
 </head>
 
 <body>
-    <h2 class="miro-h2">Lean stories installed successfully</h2>
+    <h2 class="miro-h2" id="sucess-message"></h2>
+    <script type="text/javascript" src="util.js"></script>
     <script>
+        document.getElementById("sucess-message").innerText = getAppName() + " installed successfully";
         if (window.opener) {
             // Close this window
             window.opener.miroAuthorized()
