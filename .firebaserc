@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "carboncopy-4f14e"
+    "default": "carboncopy-4f14e",
+    "carboncopy": "carboncopy-4f14e"
   }
 }
