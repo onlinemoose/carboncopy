@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "license": "MIT",
   "scripts": {
-    "dist": "node prepare-dist.js && firebase deploy"
+    "dist": "node prepare-dist.js && firebase use leanstoriesplus && firebase deploy"
   },
   "devDependencies": {
     "terser": "^5.5.1"
