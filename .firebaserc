@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "leanstoriesplus"
+    "default": "leanstoriesplus",
+    "leanstoriesplus": "leanstoriesplus"
   }
 }
