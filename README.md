@@ -15,7 +15,7 @@ Note: Firebase cli needs to be installed and authenticated once before using fir
 
 `Carbon Copy`: https://github.com/onlinemoose/carboncopy/tree/carboncopy
 
-There are only 3 differences between Each branch:
+There are only 4 differences between Each branch:
 
 `util.js`: This file has the appName parameter, which is responsible for different app behaviors (Lean Stories, Lean Stories+ & Carbon Copy)
 
