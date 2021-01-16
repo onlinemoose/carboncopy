@@ -10,14 +10,19 @@ A plugin for Miro boards to build lean stories
 Note: Firebase cli needs to be installed and authenticated once before using firebase deploy command
 
 `Lean Stories`: https://github.com/onlinemoose/carboncopy/tree/leanstories
+
 `Lean Stories+`: https://github.com/onlinemoose/carboncopy/tree/leanstories+
+
 `Carbon Copy`: https://github.com/onlinemoose/carboncopy/tree/carboncopy
 
 There are only 3 differences between Each branch:
 
 `util.js`: This file has the appName parameter, which is responsible for different app behaviors (Lean Stories, Lean Stories+ & Carbon Copy)
+
 `.firebaserc`: This file is responsible for indicating the firebase project to which the code should be deployed.
+
 `package.json`: Switch the firebase project on `npm run dist`
+
 `Readme.md`: Readable app information on opening the branch
 
 # Installable Links:
