@@ -51,11 +51,9 @@ const setEndOfContenteditable = (contentEditableElement) => {
 }
 
 const handleStickyTextChange = event => {
-    let metadata = {};
-    metadata[appId] = selectedSticky.metadata[appId];
-    let newWidgetData = { ...selectedSticky, plainText: event.target.innerText, text: event.target.innerText, metadata: metadata };
+    let newWidgetData = { ...selectedSticky, plainText: event.target.innerText, text: event.target.innerText };
     miro.board.widgets.update(newWidgetData);
-    selectedSticky = newWidgetData;
+    miro.board.selection.selectWidgets([]);
 }
 
 widgetText.addEventListener("input", _.debounce(handleStickyTextChange, 1000));
@@ -119,17 +117,47 @@ const getListItem = (listName, listID, showDeletedIcon) => {
     return template.content.firstChild;
 }
 
+const processSynced = async (metadata, id) => {
+
+    let widgets = await miro.board.widgets.get();
+    let sticky = widgets.filter(widget => widget.id === id);
+
+    if (sticky && sticky.length) {
+        sticky = sticky[0];
+        let syncID = (sticky.metadata[appId]?.syncID || 0);
+        if (syncID) {
+            let syncedWidgets = widgets.filter(widget => ((widget.metadata[appId]?.syncID || 0) === syncID) && widget.id !== id);
+            let newMetadata = metadata;
+            syncedWidgets.map(widget => {
+                newMetadata[widget.id] = metadata[id];
+            });
+            return newMetadata;
+        }
+    }
+
+    return metadata;
+}
+
 const updateListItemValue = async (event, listID) => {
     clearTimeout(timeout);
-    let newmetadata = {};
-    newmetadata[appId] = (selectedSticky.metadata[appId] || {});
-    let newFrames = (newmetadata[appId]?.frames || []);
+    let metadata = await readData();
+
+    let newFrames = (metadata[selectedSticky.id]?.frames || []);
     var nodes = Array.from(list.children);
     let modifiedIndex = nodes.indexOf(event.target);
-    let newAliases = (newmetadata[appId]?.aliases || []);
+    let newAliases = (metadata[selectedSticky.id]?.aliases || []);
     newAliases[modifiedIndex] = event.target.innerText;
-    newmetadata[appId] = { ...(newmetadata[appId] || {}), frames: newFrames, aliases: newAliases };
-    await miro.board.widgets.update({ ...selectedSticky, metadata: newmetadata });
+
+    metadata[selectedSticky.id] = {
+        ...(metadata[selectedSticky.id] || {}),
+        frames: newFrames,
+        aliases: newAliases
+    };
+
+    if (getAppName() === "Lean Stories+") {
+        metadata = await processSynced(metadata, selectedSticky.id);
+    }
+    await writeData(metadata);
 }
 
 const handleListItemInput = (event, listID) => {
@@ -185,10 +213,10 @@ const handleListItemClick = async (listID) => {
 }
 
 const handlePositionChange = async ({ newIndex, oldIndex }) => {
-    let newmetadata = {};
-    newmetadata[appId] = (selectedSticky.metadata[appId] || {});
-    let newFrames = (newmetadata[appId]?.frames || []);
-    let newAliases = (newmetadata[appId]?.aliases || []);
+
+    let metadata = await readData();
+    let newFrames = (metadata[selectedSticky.id]?.frames || []);
+    let newAliases = (metadata[selectedSticky.id]?.aliases || []);
 
     let oldValue = newFrames[oldIndex];
     newFrames.splice(oldIndex, 1);              //Remove item from old position
@@ -198,10 +226,16 @@ const handlePositionChange = async ({ newIndex, oldIndex }) => {
     newAliases.splice(oldIndex, 1);              //Remove item from old position
     newAliases.splice(newIndex, 0, oldValue);    //Add item to new position
 
-    newmetadata[appId] = { ...newmetadata[appId], frames: newFrames, aliases: newAliases };
-    let newWidgetData = { ...selectedSticky, metadata: newmetadata };
-    await miro.board.widgets.update(newWidgetData);
-    selectedSticky = newWidgetData;
+    metadata[selectedSticky.id] = {
+        ...(metadata[selectedSticky.id] || {}),
+        frames: newFrames,
+        aliases: newAliases
+    };
+
+    if (getAppName() === "Lean Stories+") {
+        metadata = await processSynced(metadata, selectedSticky.id);
+    }
+    await writeData(metadata);
 }
 
 const handleOverFlow = (event) => {
@@ -288,14 +322,25 @@ btnRename.addEventListener('click', async () => {
 });
 
 btnDelete.addEventListener('click', async () => {
-    sortable.removeItem(activeFrame);
-    let newmetadata = {};
-    let newFrames = selectedSticky.metadata[appId].frames.filter((_, index) => index !== activeFrame);
-    let newAliases = selectedSticky.metadata[appId].aliases.filter((_, index) => index !== activeFrame);
-    newmetadata[appId] = { ...selectedSticky.metadata[appId], frames: newFrames, aliases: newAliases };
-    let newSticky = { ...selectedSticky, metadata: newmetadata };
-    miro.board.widgets.update(newSticky);
-    selectedSticky = newSticky;
+
+    //sortable.removeItem overwrites var, so pass it a const
+    const deleteFrame = activeFrame;
+    sortable.removeItem(deleteFrame);
+
+    let metadata = await readData();
+    let newFrames = metadata[selectedSticky.id].frames.filter((_, index) => index !== deleteFrame);
+    let newAliases = metadata[selectedSticky.id].aliases.filter((_, index) => index !== deleteFrame);
+
+    metadata[selectedSticky.id] = {
+        ...(metadata[selectedSticky.id] || {}),
+        frames: newFrames,
+        aliases: newAliases
+    };
+
+    if (getAppName() === "Lean Stories+") {
+        metadata = await processSynced(metadata, selectedSticky.id);
+    }
+    await writeData(metadata);
 });
 
 const cleanUp = () => {
@@ -317,18 +362,26 @@ const renderList = async (frames, aliases) => { //Frame ID's to render
 }
 
 const addFrame = async (selectedFrame) => {
-    let newWidgetData = selectedSticky; // This is sticky
-    let newmetadata = {};
-    newmetadata[appId] = (newWidgetData.metadata[appId] || {});
-    let newFrames = (newmetadata[appId]?.frames || []);
+
+    let metadata = await readData();
+
+    let newFrames = (metadata[selectedSticky.id]?.frames || []);
     newFrames.push(selectedFrame.id);
-    let newAliases = (newmetadata[appId]?.aliases || []);
+    let newAliases = (metadata[selectedSticky.id]?.aliases || []);
     newAliases.push(selectedFrame.title);
-    newmetadata[appId] = { ...(newmetadata[appId] || {}), frames: newFrames, aliases: newAliases };
-    newWidgetData = { ...newWidgetData, metadata: newmetadata };
+
+    metadata[selectedSticky.id] = {
+        ...(metadata[selectedSticky.id] || {}),
+        frames: newFrames,
+        aliases: newAliases
+    };
+
     await renderList(newFrames, newAliases);
-    selectedSticky = newWidgetData;
-    await miro.board.widgets.update(newWidgetData);
+
+    if (getAppName() === "Lean Stories+") {
+        metadata = await processSynced(metadata, selectedSticky.id);
+    }
+    await writeData(metadata);
 }
 
 async function getWidget() {
@@ -360,10 +413,11 @@ const handleSetFrame = (selectedWidget) => {
 
 const showFrameData = async (selectedWidget) => {
 
+    let metadata = await readData();
     widgetText.innerText = selectedWidget.plainText;
     selectedSticky = selectedWidget;
     defaultText.classList.add("hide");
     widgetTextContainer.classList.remove("hide");
-    renderList(selectedWidget.metadata[appId]?.frames || [], selectedWidget.metadata[appId]?.aliases || []);
+    renderList(metadata[selectedWidget.id]?.frames || [], metadata[selectedWidget.id]?.aliases || []);
 
 }
