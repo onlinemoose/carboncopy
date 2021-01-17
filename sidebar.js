@@ -418,6 +418,17 @@ const showFrameData = async (selectedWidget) => {
     selectedSticky = selectedWidget;
     defaultText.classList.add("hide");
     widgetTextContainer.classList.remove("hide");
+
+    if (selectedWidget.metadata[appId]?.syncID && !metadata[selectedWidget.id]) {
+        let widgets = await miro.board.widgets.get();
+        let matchWidget = widgets.find(widget =>
+            (widget.metadata[appId]?.syncID === selectedWidget.metadata[appId]?.syncID && widget.id !== selectedWidget.id));
+        if (matchWidget) {
+            metadata[selectedWidget.id] = metadata[matchWidget.id];
+            await writeData(metadata);
+        }
+    }
+
     renderList(metadata[selectedWidget.id]?.frames || [], metadata[selectedWidget.id]?.aliases || []);
 
 }
