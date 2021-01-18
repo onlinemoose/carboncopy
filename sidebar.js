@@ -3,7 +3,7 @@ var enableFrameAdd = false;
 var selectedSticky = null;
 var pinned = false;
 var contextMenuOpen = false;
-var activeFrame = -1;
+window.activeFrame = -1;
 var selectedListItem = null;
 var timeout = null;
 
@@ -11,24 +11,125 @@ miro.onReady(async () => {
     appId = await miro.getClientId();
     miro.addListener(miro.enums.event.SELECTION_UPDATED, getWidget);
     getWidget();
+    if (getAppName() === 'Lean Stories+') {
+        initializeDraggable();
+    }
 });
 
+const initializeDraggable = async () => {
+
+    console.log('initializeDraggable');
+    const shapeOptions = {
+        draggableItemSelector: '.widget-text',
+        onClick: async (targetElement) => {
+            console.log(targetElement);
+        },
+        getDraggableItemPreview: () => {
+            let bgColor = selectedSticky.style.stickerBackgroundColor.split('#')[1];
+            return {
+                url: `data:image/svg+xml,%3Csvg width='140' height='140' xmlns='http://www.w3.org/2000/svg'%3E%3Cg%3E%3Crect stroke='null' x='0' y='0' fill='%23${bgColor}' height='140' width='140'/%3E%3C/g%3E%3C/svg%3E`,
+            }
+        },
+        onDrop: async (canvasX, canvasY) => {
+            let sticky = await miro.board.widgets.get({ id: selectedSticky.id });
+            sticky = sticky[0];
+
+            if (!sticky) {
+                return;
+            }
+
+            if (sticky.metadata[appId]?.sync) {
+                miro.board.widgets.create({ ...sticky, x: canvasX, y: canvasY });
+            }
+            else {
+                let metadata = {};
+                metadata[appId] = {
+                    sync: true,
+                    syncID: new Date().getTime()
+                }
+                let res = await miro.board.widgets.update({ ...sticky, metadata: metadata });
+                miro.board.widgets.create({ ...res[0], x: canvasX, y: canvasY });
+            }
+        },
+    };
+    miro.board.ui.initDraggableItemsContainer(widgetTextContainer, shapeOptions)
+}
+
+const headerText = document.getElementById('header-text');
 const defaultText = document.getElementById('default-text');
 const widgetTextContainer = document.getElementById('default-text-container');
 const widgetText = document.getElementById('widget-text');
 const pinIcon = document.getElementById('pin-icon');
 const footer = document.getElementById('footer');
+const footerPaste = document.getElementById('footer-paste');
 const btnSetFrame = document.getElementById('set-frame');
+const btnPasteFrame = document.getElementById('paste-frame');
+const btnPasteCancelFrame = document.getElementById('paste-cancel-frame');
 const contextMenu = document.getElementById('context-menu');
+const btnCut = document.getElementById('btn-cut');
+const btnCopy = document.getElementById('btn-copy');
 const btnMoveup = document.getElementById('btn-moveup');
 const btnMovedown = document.getElementById('btn-movedown');
 const btnRename = document.getElementById('btn-rename');
 const btnDelete = document.getElementById('btn-delete');
 
+const headerClickHandler = (mainWidget) => {
+    miro.board.viewport.set({
+        x: mainWidget.x - (mainWidget.bounds.width * 1.5) / 2,
+        y: mainWidget.y - (mainWidget.bounds.height * 1.2) / 2,
+        width: mainWidget.bounds.width * 1.5,
+        height: mainWidget.bounds.height * 1.2,
+    }, { animationTimeInMS: 250 });
+}
+
+const handleHeaderText = async () => {
+    const allWidgets = await miro.board.widgets.get();
+    const mainWidget = allWidgets.find(widget => widget.type === "FRAME" && widget.title?.toLowerCase() === "main");
+    if (mainWidget) {
+        headerText.classList.add('header-text-clickable');
+        headerText.addEventListener("click", () => headerClickHandler(mainWidget), false);
+    }
+    else {
+        headerText.classList.remove('header-text-clickable');
+        headerText.removeEventListener("click", () => headerClickHandler(mainWidget), false);
+    }
+}
+
 btnSetFrame.addEventListener('click', () => { enableFrameAdd = true });
 
-document.addEventListener('click', () => closeContextMenu(), false);
+btnPasteFrame.addEventListener('click', async () => {
+    let metadata = await readData();
+    metadata[selectedSticky.id] = {
+        ...(metadata[selectedSticky.id] || {}),
+        frames: [...(metadata[selectedSticky.id]?.frames || []), metadata.clipboard.frame],
+        aliases: [...(metadata[selectedSticky.id]?.aliases || []), metadata.clipboard.alias]
+    }
+    delete metadata.clipboard;
+    await writeData(metadata);
+    getWidget();
+});
 
+
+btnPasteCancelFrame.addEventListener('click', async () => {
+    let metadata = await readData();
+    let newFrames = (metadata[metadata.clipboard.copiedFrom]?.frames || []);
+    let newAliases = (metadata[metadata.clipboard.copiedFrom]?.aliases || []);
+
+    newFrames.splice(metadata.clipboard.position, 0, metadata.clipboard.frame);
+    newAliases.splice(metadata.clipboard.position, 0, metadata.clipboard.aliases);
+
+    metadata[metadata.clipboard.copiedFrom] = {
+        ...(metadata[metadata.clipboard.copiedFrom] || {}),
+        frames: newFrames,
+        aliases: newAliases
+    };
+
+    delete metadata.clipboard;
+    await writeData(metadata);
+    getWidget();
+});
+
+document.addEventListener('click', () => closeContextMenu(), false);
 
 const setEndOfContenteditable = (contentEditableElement) => {
     var range, selection;
@@ -84,7 +185,7 @@ closeContextMenu = () => {
     if (contextMenuOpen) {
         contextMenu.classList.add('hide');
         contextMenuOpen = false;
-        activeFrame = -1;
+        window.activeFrame = -1;
     }
 }
 
@@ -260,7 +361,7 @@ const handleOverFlow = (event) => {
         btnMovedown.classList.remove('hide');
     }
     contextMenuOpen = true;
-    activeFrame = index;
+    window.activeFrame = index;
 }
 
 Sortable.prototype.moveItem = function (index, toIndex) {
@@ -303,29 +404,58 @@ pinIcon.addEventListener('click', async () => {
     else {
         pinIcon.classList.add("color-primary");
         footer.classList.remove("hide");
+        btnCut.classList.add("hide");
+        btnCopy.classList.add("hide");
+        footerPaste.classList.add("hide");
         pinned = true;
     }
 });
 
+const handleCopy = async () => {
+
+    const copyFrame = window.activeFrame;
+    let metadata = await readData();
+    let frame = metadata[selectedSticky.id].frames.find((_, index) => index === copyFrame);
+    let alias = metadata[selectedSticky.id].aliases.find((_, index) => index === copyFrame);
+
+    if (frame && alias) {
+        metadata['clipboard'] = {
+            frame: frame,
+            alias: alias,
+            copiedFrom: selectedSticky.id,
+            position: window.activeFrame
+        };
+        await writeData(metadata);
+    }
+}
+
+const handleCut = async (activeFrame) => {
+    await handleCopy();
+    handleDeleteFrame(activeFrame);
+}
+
+btnCut.addEventListener('click', () => handleCut(window.activeFrame));
+
+btnCopy.addEventListener('click', handleCopy);
+
 btnMoveup.addEventListener('click', async () => {
-    sortable.moveItem(activeFrame, activeFrame - 1);
-    handlePositionChange({ newIndex: activeFrame - 1, oldIndex: activeFrame });
+    sortable.moveItem(window.activeFrame, window.activeFrame - 1);
+    handlePositionChange({ newIndex: window.activeFrame - 1, oldIndex: window.activeFrame });
 });
 
 btnMovedown.addEventListener('click', async () => {
-    sortable.moveItem(activeFrame, activeFrame + 1);
-    handlePositionChange({ newIndex: activeFrame + 1, oldIndex: activeFrame });
+    sortable.moveItem(window.activeFrame, window.activeFrame + 1);
+    handlePositionChange({ newIndex: window.activeFrame + 1, oldIndex: window.activeFrame });
 });
 
 btnRename.addEventListener('click', async () => {
-    sortable.editItem(activeFrame);
+    sortable.editItem(window.activeFrame);
 });
 
-btnDelete.addEventListener('click', async () => {
-
+const handleDeleteFrame = async (activeFrame) => {
     //sortable.removeItem overwrites var, so pass it a const
     const deleteFrame = activeFrame;
-    sortable.removeItem(deleteFrame);
+    sortable.removeItem(activeFrame);
 
     let metadata = await readData();
     let newFrames = metadata[selectedSticky.id].frames.filter((_, index) => index !== deleteFrame);
@@ -341,13 +471,26 @@ btnDelete.addEventListener('click', async () => {
         metadata = await processSynced(metadata, selectedSticky.id);
     }
     await writeData(metadata);
-});
+}
 
-const cleanUp = () => {
+btnDelete.addEventListener('click', () => handleDeleteFrame(window.activeFrame));
+
+const cleanUp = async () => {
     pinIcon.classList.remove("color-primary");
     footer.classList.add("hide");
     pinned = false;
     enableFrameAdd = false;
+
+    btnCut.classList.remove("hide");
+    btnCopy.classList.remove("hide");
+
+    let metadata = await readData();
+    if (metadata.clipboard && metadata.clipboard.copiedFrom !== selectedSticky.id) {
+        footerPaste.classList.remove('hide');
+    }
+    else {
+        footerPaste.classList.remove('add');
+    }
 }
 
 const renderList = async (frames, aliases) => { //Frame ID's to render
@@ -396,6 +539,7 @@ async function getWidget() {
         showFrameData(selectedWidget);
     }
 
+    handleHeaderText();
 }
 
 const handleSetFrame = (selectedWidget) => {
@@ -427,6 +571,13 @@ const showFrameData = async (selectedWidget) => {
             metadata[selectedWidget.id] = metadata[matchWidget.id];
             await writeData(metadata);
         }
+    }
+
+    if (metadata.clipboard && metadata.clipboard.copiedFrom !== selectedWidget.id) {
+        footerPaste.classList.remove('hide');
+    }
+    else {
+        footerPaste.classList.add('hide');
     }
 
     renderList(metadata[selectedWidget.id]?.frames || [], metadata[selectedWidget.id]?.aliases || []);
