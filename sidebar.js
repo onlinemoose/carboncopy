@@ -18,11 +18,9 @@ miro.onReady(async () => {
 
 const initializeDraggable = async () => {
 
-    console.log('initializeDraggable');
     const shapeOptions = {
         draggableItemSelector: '.widget-text',
-        onClick: async (targetElement) => {
-            console.log(targetElement);
+        onClick: async () => {
         },
         getDraggableItemPreview: () => {
             let bgColor = selectedSticky.style.stickerBackgroundColor.split('#')[1];
