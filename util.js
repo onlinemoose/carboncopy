@@ -39,7 +39,6 @@ const readData = async () => {
     else {
         let metadata = {};
         metadata[appId] = {};
-        console.log('create on read')
         await miro.board.widgets.create({ type: "TEXT", text: storageWidget, metadata: metadata, clientVisible: false, scale: 0.00001 });
         return {};
     }
@@ -53,7 +52,6 @@ const writeData = async (data) => {
     metadata[appId] = { ...data };
 
     if (!widgetData || !widgetData.length) {
-        console.log('create on write')
         await miro.board.widgets.create({ type: "TEXT", text: storageWidget, metadata: metadata, clientVisible: false, scale: 0.00001 });
     }
     else {

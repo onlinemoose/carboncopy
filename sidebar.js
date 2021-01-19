@@ -50,12 +50,13 @@ const initializeDraggable = async () => {
             }
         },
     };
-    miro.board.ui.initDraggableItemsContainer(widgetTextContainer, shapeOptions)
+    miro.board.ui.initDraggableItemsContainer(draggableContainer, shapeOptions)
 }
 
 const headerText = document.getElementById('header-text');
 const defaultText = document.getElementById('default-text');
 const widgetTextContainer = document.getElementById('default-text-container');
+const draggableContainer = document.getElementById('draggable-container');
 const widgetText = document.getElementById('widget-text');
 const pinIcon = document.getElementById('pin-icon');
 const footer = document.getElementById('footer');
@@ -104,27 +105,30 @@ btnPasteFrame.addEventListener('click', async () => {
     }
     delete metadata.clipboard;
     await writeData(metadata);
-    getWidget();
+    showFrameData(selectedSticky);
 });
 
 
 btnPasteCancelFrame.addEventListener('click', async () => {
+
     let metadata = await readData();
-    let newFrames = (metadata[metadata.clipboard.copiedFrom]?.frames || []);
-    let newAliases = (metadata[metadata.clipboard.copiedFrom]?.aliases || []);
 
-    newFrames.splice(metadata.clipboard.position, 0, metadata.clipboard.frame);
-    newAliases.splice(metadata.clipboard.position, 0, metadata.clipboard.aliases);
+    if (metadata.clipboard.operation === 'cut') {
+        let newFrames = (metadata[metadata.clipboard.copiedFrom]?.frames || []);
+        let newAliases = (metadata[metadata.clipboard.copiedFrom]?.aliases || []);
 
-    metadata[metadata.clipboard.copiedFrom] = {
-        ...(metadata[metadata.clipboard.copiedFrom] || {}),
-        frames: newFrames,
-        aliases: newAliases
-    };
+        newFrames.splice(metadata.clipboard.position, 0, metadata.clipboard.frame);
+        newAliases.splice(metadata.clipboard.position, 0, metadata.clipboard.alias);
 
+        metadata[metadata.clipboard.copiedFrom] = {
+            ...(metadata[metadata.clipboard.copiedFrom] || {}),
+            frames: newFrames,
+            aliases: newAliases
+        };
+    }
     delete metadata.clipboard;
     await writeData(metadata);
-    getWidget();
+    showFrameData(selectedSticky);
 });
 
 document.addEventListener('click', () => closeContextMenu(), false);
@@ -409,9 +413,9 @@ pinIcon.addEventListener('click', async () => {
     }
 });
 
-const handleCopy = async () => {
+const handleCopy = async (activeFrame) => {
 
-    const copyFrame = window.activeFrame;
+    const copyFrame = activeFrame;
     let metadata = await readData();
     let frame = metadata[selectedSticky.id].frames.find((_, index) => index === copyFrame);
     let alias = metadata[selectedSticky.id].aliases.find((_, index) => index === copyFrame);
@@ -421,20 +425,38 @@ const handleCopy = async () => {
             frame: frame,
             alias: alias,
             copiedFrom: selectedSticky.id,
-            position: window.activeFrame
+            position: copyFrame,
+            operation: 'copy'
         };
         await writeData(metadata);
     }
+    getWidget();
 }
 
 const handleCut = async (activeFrame) => {
-    await handleCopy();
-    handleDeleteFrame(activeFrame);
+
+    const copyFrame = activeFrame;
+    let metadata = await readData();
+    let frame = metadata[selectedSticky.id].frames.find((_, index) => index === copyFrame);
+    let alias = metadata[selectedSticky.id].aliases.find((_, index) => index === copyFrame);
+
+    if (frame && alias) {
+        metadata['clipboard'] = {
+            frame: frame,
+            alias: alias,
+            copiedFrom: selectedSticky.id,
+            position: copyFrame,
+            operation: 'cut'
+        };
+        await writeData(metadata);
+    }
+    await handleDeleteFrame(activeFrame);
+    getWidget();
 }
 
 btnCut.addEventListener('click', () => handleCut(window.activeFrame));
 
-btnCopy.addEventListener('click', handleCopy);
+btnCopy.addEventListener('click', () => handleCopy(window.activeFrame));
 
 btnMoveup.addEventListener('click', async () => {
     sortable.moveItem(window.activeFrame, window.activeFrame - 1);
@@ -571,7 +593,7 @@ const showFrameData = async (selectedWidget) => {
         }
     }
 
-    if (metadata.clipboard && metadata.clipboard.copiedFrom !== selectedWidget.id) {
+    if (metadata.clipboard) {
         footerPaste.classList.remove('hide');
     }
     else {
