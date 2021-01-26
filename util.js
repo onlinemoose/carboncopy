@@ -1,16 +1,15 @@
 
 //appName can be one of [Lean Stories, Carbon Copy, Lean Stories+]
 const appName = "Lean Stories+";
-var appId;
-var storageWidget;
+var documentName;
+const FIREBASE_PROJECT_ID = "leanstoriesplus";
+window.firebase.initializeApp({ projectId: FIREBASE_PROJECT_ID });
+const db = window.firebase.firestore();
+const collection = db.collection('miro');
 
 miro.onReady(async () => {
-    appId = await miro.getClientId();
-    storageWidget = appId + "_metadata";
-    let widgetData = await miro.board.widgets.get({ text: storageWidget });
-    if (widgetData && widgetData.length) {
-        miro.board.widgets.update({ ...widgetData[0], clientVisible: false });
-    }
+    let boardInfo = await miro.board.info.get();
+    documentName = btoa(boardInfo.id + boardInfo.createdAt);
 });
 
 const getAppName = () => {
@@ -31,31 +30,16 @@ const allEqual = arr => arr.every(v => v === arr[0]);
 
 const readData = async () => {
 
-    let widgetData = await miro.board.widgets.get({ text: storageWidget });
+    let doc = await collection.doc(documentName).get();
 
-    if (widgetData && widgetData.length) {
-        return (widgetData[0].metadata[appId] || {});
-    }
-    else {
-        let metadata = {};
-        metadata[appId] = {};
-        await miro.board.widgets.create({ type: "TEXT", text: storageWidget, metadata: metadata, clientVisible: false, scale: 0.00001 });
+    if (doc.exists) {
+        return doc.data();
+    } else {
+        writeData({});
         return {};
     }
 }
 
 const writeData = async (data) => {
-
-    let widgetData = await miro.board.widgets.get({ text: storageWidget });
-
-    let metadata = {};
-    metadata[appId] = { ...data };
-
-    if (!widgetData || !widgetData.length) {
-        await miro.board.widgets.create({ type: "TEXT", text: storageWidget, metadata: metadata, clientVisible: false, scale: 0.00001 });
-    }
-    else {
-        await miro.board.widgets.update({ ...widgetData[0], metadata: metadata });
-    }
-
+    await collection.doc(documentName).set(data);
 }

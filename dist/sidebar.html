@@ -8,6 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min.js"></script>
     <script src="https://miro.com/app/static/sdk.1.1.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.22.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.22.1/firebase-firestore.js"></script>
     <script type="text/javascript" src="util.js"></script>
 
     <style>
@@ -190,6 +192,26 @@
         .footer-button {
             width: 40%;
             margin-top: 12px;
+            border-color: #CDCCD7;
+            background-color: #CDCCD7;
+            color: black;
+        }
+
+        .footer-button:hover {
+            border-color: #A4A3AC !important;
+            background-color: #A4A3AC !important;
+        }
+
+        .footer-button-pinned {
+            color: white;
+            border-color: #4262FF !important;
+            background-color: #4262FF !important;
+        }
+
+        .footer-button-pinned:hover {
+            color: white;
+            border-color: #4262FF !important;
+            background-color: #4262FF !important;
         }
 
         .footer-paste-button {

@@ -11,6 +11,7 @@ miro.onReady(async () => {
     appId = await miro.getClientId();
     miro.addListener(miro.enums.event.SELECTION_UPDATED, getWidget);
     getWidget();
+    handleHeaderText();
     if (getAppName() === 'Lean Stories+') {
         initializeDraggable();
     }
@@ -73,12 +74,13 @@ const btnRename = document.getElementById('btn-rename');
 const btnDelete = document.getElementById('btn-delete');
 
 const headerClickHandler = (mainWidget) => {
-    miro.board.viewport.set({
+    let newLocation = {
         x: mainWidget.x - (mainWidget.bounds.width * 1.5) / 2,
         y: mainWidget.y - (mainWidget.bounds.height * 1.2) / 2,
-        width: mainWidget.bounds.width * 1.5,
-        height: mainWidget.bounds.height * 1.2,
-    }, { animationTimeInMS: 250 });
+        width: (mainWidget.bounds.width) * 1.5,
+        height: (mainWidget.bounds.height) * 1.2,
+    };
+    miro.board.viewport.set(newLocation, { animationTimeInMS: 250 });
 }
 
 const handleHeaderText = async () => {
@@ -94,7 +96,10 @@ const handleHeaderText = async () => {
     }
 }
 
-btnSetFrame.addEventListener('click', () => { enableFrameAdd = true });
+btnSetFrame.addEventListener('click', () => {
+    enableFrameAdd = true;
+    btnSetFrame.classList.add('footer-button-pinned');
+});
 
 btnPasteFrame.addEventListener('click', async () => {
     let metadata = await readData();
@@ -103,6 +108,16 @@ btnPasteFrame.addEventListener('click', async () => {
         frames: [...(metadata[selectedSticky.id]?.frames || []), metadata.clipboard.frame],
         aliases: [...(metadata[selectedSticky.id]?.aliases || []), metadata.clipboard.alias]
     }
+
+    let allStories = await miro.board.widgets.get({ type: "STICKER" });
+    let syncedStories = allStories.filter(story => (story.metadata[appId]?.syncID || " ") === (selectedSticky.metadata[appId]?.syncID || ""));
+    let syncedIds = syncedStories.map(story => story.id);
+    if (syncedIds && syncedIds.length) {
+        syncedIds.map(id => {
+            metadata[id] = metadata[selectedSticky.id];
+        });
+    }
+
     delete metadata.clipboard;
     await writeData(metadata);
     showFrameData(selectedSticky);
@@ -125,6 +140,15 @@ btnPasteCancelFrame.addEventListener('click', async () => {
             frames: newFrames,
             aliases: newAliases
         };
+
+        let allStories = await miro.board.widgets.get({ type: "STICKER" });
+        let syncedStories = allStories.filter(story => (story.metadata[appId]?.syncID || " ") === (metadata.clipboard.syncID || ""));
+        let syncedIds = syncedStories.map(story => story.id);
+        if (syncedIds && syncedIds.length) {
+            syncedIds.map(id => {
+                metadata[id] = metadata[metadata.clipboard.copiedFrom];
+            });
+        }
     }
     delete metadata.clipboard;
     await writeData(metadata);
@@ -298,7 +322,10 @@ const handleStoryClick = () => {
     }, { animationTimeInMS: 250 });
 }
 
-const handleListItemClick = async (listID) => {
+var listItemClickTimer;
+
+const listItemClickHandler = async (listID) => {
+    listItemClickTimer = null;
     let widgets = await miro.board.widgets.get({ id: listID });
     if (widgets.length) {
         let frame = widgets[0];
@@ -312,6 +339,14 @@ const handleListItemClick = async (listID) => {
     }
     else {
         miro.showErrorNotification('Selected frame doesn\'t exist in the board');
+    }
+}
+const handleListItemClick = async (listID) => {
+    if (listItemClickTimer) {
+        clearTimeout(listItemClickTimer);
+        listItemClickTimer = null;
+    } else {
+        listItemClickTimer = setTimeout(() => listItemClickHandler(listID), 250);
     }
 }
 
@@ -425,12 +460,13 @@ const handleCopy = async (activeFrame) => {
             frame: frame,
             alias: alias,
             copiedFrom: selectedSticky.id,
+            syncID: (selectedSticky.metadata[appId]?.syncID || ""),
             position: copyFrame,
             operation: 'copy'
         };
         await writeData(metadata);
     }
-    getWidget();
+    showFrameData(selectedSticky);
 }
 
 const handleCut = async (activeFrame) => {
@@ -445,13 +481,14 @@ const handleCut = async (activeFrame) => {
             frame: frame,
             alias: alias,
             copiedFrom: selectedSticky.id,
+            syncID: (selectedSticky.metadata[appId]?.syncID || ""),
             position: copyFrame,
             operation: 'cut'
         };
         await writeData(metadata);
     }
     await handleDeleteFrame(activeFrame);
-    getWidget();
+    showFrameData(selectedSticky);
 }
 
 btnCut.addEventListener('click', () => handleCut(window.activeFrame));
@@ -558,8 +595,6 @@ async function getWidget() {
     else if (selectedWidget && selectedWidget.type === "STICKER" && !pinned) {
         showFrameData(selectedWidget);
     }
-
-    handleHeaderText();
 }
 
 const handleSetFrame = (selectedWidget) => {
@@ -569,6 +604,7 @@ const handleSetFrame = (selectedWidget) => {
     }
     else {
         addFrame(selectedWidget);
+        btnSetFrame.classList.remove('footer-button-pinned');
         enableFrameAdd = false;
     }
     return;
@@ -593,7 +629,13 @@ const showFrameData = async (selectedWidget) => {
         }
     }
 
-    if (metadata.clipboard) {
+    if (metadata.clipboard
+        && !(metadata.clipboard?.operation === 'cut'
+            && (Boolean(selectedSticky.metadata[appId]?.syncID || "") ?
+                metadata.clipboard?.syncID === selectedSticky.metadata[appId]?.syncID
+                :
+                selectedSticky.id === metadata.clipboard?.copiedFrom
+            ))) {
         footerPaste.classList.remove('hide');
     }
     else {
