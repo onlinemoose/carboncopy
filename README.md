@@ -1,5 +1,5 @@
-# Leanstories+
-A plugin for Miro boards enabling users to Build Lean Stories and syncronise Sticy notes, text, shapes and cards on a Miro board. Some call this "card mirroring".
+# Carbon copy, Leanstories & Leanstories+
+Please switch to respective branch, main branch no longer hosts live code
 
 # Install dependencies
 `npm i`
