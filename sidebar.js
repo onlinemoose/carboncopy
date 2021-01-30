@@ -73,26 +73,30 @@ const btnMovedown = document.getElementById('btn-movedown');
 const btnRename = document.getElementById('btn-rename');
 const btnDelete = document.getElementById('btn-delete');
 
-const headerClickHandler = (mainWidget) => {
-    let newLocation = {
-        x: mainWidget.x - (mainWidget.bounds.width * 1.5) / 2,
-        y: mainWidget.y - (mainWidget.bounds.height * 1.2) / 2,
-        width: (mainWidget.bounds.width) * 1.5,
-        height: (mainWidget.bounds.height) * 1.2,
-    };
-    miro.board.viewport.set(newLocation, { animationTimeInMS: 250 });
+const headerClickHandler = async () => {
+    const allWidgets = await miro.board.widgets.get({ type: 'FRAME' });
+    const mainWidget = allWidgets.find(widget => widget.type === "FRAME" && widget.title?.toLowerCase() === "main");
+    if (mainWidget) {
+        let newLocation = {
+            x: mainWidget.x - (mainWidget.bounds.width * 1.5) / 2,
+            y: mainWidget.y - (mainWidget.bounds.height * 1.2) / 2,
+            width: (mainWidget.bounds.width) * 1.5,
+            height: (mainWidget.bounds.height) * 1.2,
+        };
+        miro.board.viewport.set(newLocation, { animationTimeInMS: 250 });
+    }
 }
 
 const handleHeaderText = async () => {
-    const allWidgets = await miro.board.widgets.get();
+    const allWidgets = await miro.board.widgets.get({ type: 'FRAME' });
     const mainWidget = allWidgets.find(widget => widget.type === "FRAME" && widget.title?.toLowerCase() === "main");
     if (mainWidget) {
         headerText.classList.add('header-text-clickable');
-        headerText.addEventListener("click", () => headerClickHandler(mainWidget), false);
+        headerText.addEventListener("click", () => headerClickHandler(), false);
     }
     else {
         headerText.classList.remove('header-text-clickable');
-        headerText.removeEventListener("click", () => headerClickHandler(mainWidget), false);
+        headerText.removeEventListener("click", () => headerClickHandler(), false);
     }
 }
 
