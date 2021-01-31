@@ -627,7 +627,7 @@ const showFrameData = async (selectedWidget) => {
         let widgets = await miro.board.widgets.get();
         let matchWidget = widgets.find(widget =>
             (widget.metadata[appId]?.syncID === selectedWidget.metadata[appId]?.syncID && widget.id !== selectedWidget.id));
-        if (matchWidget) {
+        if (matchWidget && metadata[matchWidget.id]) {
             metadata[selectedWidget.id] = metadata[matchWidget.id];
             await writeData(metadata);
         }
