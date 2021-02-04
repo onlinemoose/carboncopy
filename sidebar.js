@@ -113,7 +113,7 @@ btnPasteFrame.addEventListener('click', async () => {
         aliases: [...(metadata[selectedSticky.id]?.aliases || []), metadata.clipboard.alias]
     }
 
-    let allStories = await miro.board.widgets.get({ type: "STICKER" });
+    let allStories = await miro.board.widgets.get();
     let syncedStories = allStories.filter(story => (story.metadata[appId]?.syncID || " ") === (selectedSticky.metadata[appId]?.syncID || ""));
     let syncedIds = syncedStories.map(story => story.id);
     if (syncedIds && syncedIds.length) {
@@ -145,7 +145,7 @@ btnPasteCancelFrame.addEventListener('click', async () => {
             aliases: newAliases
         };
 
-        let allStories = await miro.board.widgets.get({ type: "STICKER" });
+        let allStories = await miro.board.widgets.get();
         let syncedStories = allStories.filter(story => (story.metadata[appId]?.syncID || " ") === (metadata.clipboard.syncID || ""));
         let syncedIds = syncedStories.map(story => story.id);
         if (syncedIds && syncedIds.length) {
@@ -596,7 +596,7 @@ async function getWidget() {
     if (enableFrameAdd) {
         handleSetFrame(selectedWidget);
     }
-    else if (selectedWidget && selectedWidget.type === "STICKER" && !pinned) {
+    else if (selectedWidget && ["STICKER", "SHAPE"].includes(selectedWidget.type) && !pinned) {
         showFrameData(selectedWidget);
     }
 }
@@ -618,6 +618,11 @@ const handleSetFrame = (selectedWidget) => {
 const showFrameData = async (selectedWidget) => {
 
     let metadata = await readData();
+
+    if (selectedWidget.type === "SHAPE" && !metadata[selectedWidget.id]) {
+        return;
+    }
+
     widgetText.innerText = selectedWidget.plainText;
     selectedSticky = selectedWidget;
     defaultText.classList.add("hide");
