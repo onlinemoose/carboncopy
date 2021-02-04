@@ -2,6 +2,10 @@
 <html lang="en">
 
 <head>
+    <script src="https://www.gstatic.com/firebasejs/7.22.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.22.1/firebase-firestore.js"></script>
+    <script type="text/javascript" src="https://miro.com/app/static/sdk.1.1.js"></script>
+    <script type="text/javascript" src="util.js"></script>
     <style>
         body {
             font: 14px OpenSans, Arial, Helvetica, sans-serif;
@@ -85,11 +89,10 @@
 </head>
 
 <body>
-    <script type="text/javascript" src="util.js"></script>
+
     <h2 id="appName" class="miro-h3" style="margin: 15px;"></h2>
     <button class="miro-btn miro-btn--primary miro-btn--medium"
         style="float: right;margin: 10px; margin-top: 70px;">Authorize</button>
-    <script src="https://miro.com/app/static/sdk.1.1.js"></script>
     <script>
         document.getElementById("appName").innerText = "Please authorize " + getAppName();
         document.querySelector('button').addEventListener('click', function () {
