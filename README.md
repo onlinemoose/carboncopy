@@ -28,12 +28,12 @@ There are only 4 differences between Each branch:
 # Installable Links:
 `Lean Stories`
 
-https://miro.com/oauth/authorize/?response_type=token&client_id=3074457353132236000&account_id=3074457352070196241&scope=&state=&redirect_uri=https://leanstories-f5798.web.app/auth-success.html
+https://miro.com/oauth/authorize/?response_type=code&client_id=3074457353132236000&account_id=3074457352070196241&state=&redirect_uri=/confirm-app-install/
 
 `Lean Stories+`
 
-https://miro.com/oauth/authorize/?response_type=token&client_id=3074457352917830848&account_id=3074457352070196241&scope=&state=&redirect_uri=https://leanstoriesplus.web.app/auth-success.html
+https://miro.com/oauth/authorize/?response_type=code&client_id=3074457352917830848&account_id=3074457352070196241&state=&redirect_uri=/confirm-app-install/
 
 `Carbon Copy`
 
-https://miro.com/oauth/authorize/?response_type=token&client_id=3074457352071726785&account_id=3074457351928670722&scope=&state=&redirect_uri=https://carboncopy-4f14e.web.app/auth-success.html
+https://miro.com/oauth/authorize/?response_type=code&client_id=3074457352071726785&account_id=3074457351928670722&state=&redirect_uri=/confirm-app-install/
