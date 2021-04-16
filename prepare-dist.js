@@ -11,9 +11,9 @@ const prepareDist = async () => {
 
     fs.copyFileSync(path.join(__dirname, 'index.html'), path.join(__dirname, 'dist', 'index.html'));
 
-    fs.copyFileSync(path.join(__dirname, 'not-authorized.html'), path.join(__dirname, 'dist', 'not-authorized.html'));
+    // fs.copyFileSync(path.join(__dirname, 'not-authorized.html'), path.join(__dirname, 'dist', 'not-authorized.html'));
 
-    fs.copyFileSync(path.join(__dirname, 'auth-success.html'), path.join(__dirname, 'dist', 'auth-success.html'));
+    // fs.copyFileSync(path.join(__dirname, 'auth-success.html'), path.join(__dirname, 'dist', 'auth-success.html'));
 
     fs.copyFileSync(path.join(__dirname, 'sidebar.html'), path.join(__dirname, 'dist', 'sidebar.html'));
 
