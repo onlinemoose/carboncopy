@@ -247,28 +247,20 @@ const handleSync = async () => {
   }
 }
 
+const initializeSync = async () => {
+  window.miroSyncData = await miro.board.widgets.get();
+  window.miroTagData = await miro.board.tags.get();
+
+  miro.addListener(miro.enums.event.SELECTION_UPDATED, handleSync);
+}
+
 miro.onReady(async () => {
   appId = await miro.getClientId();
   const authorized = await miro.isAuthorized();
 
-  if (!authorized) {
-    miro.board.ui.openModal('not-authorized.html', { width: 400, height: 200 }).then((res) => {
-      if (res === 'success') {
-        location.reload();
-      }
-    });
-    return;
+  if (authorized) {
+    await initializeSync();
   }
-  else {
-    miro.board.widgets.get().then(res => {
-      window.miroSyncData = res;
-    });
-    miro.board.tags.get().then(res => {
-      window.miroTagData = res;
-    });
-  }
-
-  miro.addListener(miro.enums.event.SELECTION_UPDATED, handleSync);
 
   let extensionPoints = {};
 
@@ -276,14 +268,19 @@ miro.onReady(async () => {
     title: getAppName(),
     svgIcon: leanStoriesIcon,
     positionPriority: 100,
-    onClick: () => {
+    onClick: async () => {
+      const isAuthorized = await miro.isAuthorized();
+      if (!isAuthorized) {
+        await miro.requestAuthorization();
+        await initializeSync();
+      }
+
       miro.board.ui.openLeftSidebar('sidebar.html');
     }
   };
 
-  const getWidgetMenuItems = async (widgets, editmode) => {
+  const getWidgetMenuItems = async (selectedWidgets, editmode) => {
 
-    let selectedWidgets = await miro.board.selection.get();
     let selectedWidget = selectedWidgets[0];
 
     if (!selectedWidget) {
@@ -297,6 +294,11 @@ miro.onReady(async () => {
       svgIcon: selectedWidget.metadata[appId]?.sync ? disabledIcon : carbonCopyIcon,
       positionPriority: 100,
       onClick: async () => {
+        const isAuthorized = await miro.isAuthorized();
+        if (!isAuthorized) {
+          await miro.requestAuthorization();
+          await initializeSync();
+        }
 
         let widgetID;
 
@@ -328,6 +330,12 @@ miro.onReady(async () => {
       svgIcon: selectIcon,
       positionPriority: 100,
       onClick: async () => {
+        const isAuthorized = await miro.isAuthorized();
+        if (!isAuthorized) {
+          await miro.requestAuthorization();
+          await initializeSync();
+        }
+
         let widgets = await miro.board.widgets.get();
 
         let widgetID;
