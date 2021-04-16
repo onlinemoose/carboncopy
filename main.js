@@ -10,6 +10,9 @@ let disabledIcon =
 let selectIcon =
   '<path d="M0 0h24v24H0z" fill="none"/><path d="M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2zM7 17h10V7H7v10zm2-8h6v6H9V9z"/>';
 
+let stickiesToShapeIcon =
+  '<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M22 18v-2H8V4h2L7 1 4 4h2v2H2v2h4v8c0 1.1.9 2 2 2h8v2h-2l3 3 3-3h-2v-2h4zM10 8h6v6h2V8c0-1.1-.9-2-2-2h-6v2z"/></svg>';
+
 var appId;
 
 const syncWidgets = ["TEXT", "STICKER", "SHAPE", "CARD", "LINE"]; //IMAGE is another supported widget but there is a issue on metadata update
@@ -79,7 +82,7 @@ const syncText = async (widgetsToSync, type) => {
           description: updatedWidget.description,
         });
       }
-      else if (type === "STICKER") {
+      else if (type === "STICKER" && widget.type === updatedWidget.type) {
         newWidgetData.push({
           ...widget,
           text: updatedWidget.text,
@@ -90,7 +93,7 @@ const syncText = async (widgetsToSync, type) => {
           }
         });
       }
-      else if (type === "SHAPE") {
+      else if (type === "SHAPE" && widget.type === updatedWidget.type) {
         newWidgetData.push({
           ...widget,
           text: updatedWidget.text,
@@ -353,6 +356,40 @@ miro.onReady(async () => {
         let selectableWidgets = widgets.filter(widget => widget.metadata[appId]?.syncID === syncID);
         miro.board.selection.selectWidgets(selectableWidgets);
       }
+    }
+
+    let stickiesToShape = {
+      tooltip: 'Convert to shape',
+      svgIcon: stickiesToShapeIcon,
+      positionPriority: 90,
+      onClick: async () => {
+        const isAuthorized = await miro.isAuthorized();
+        if (!isAuthorized) {
+          await miro.requestAuthorization();
+          await initializeSync();
+        }
+        let currWidget;
+
+        if (selectedWidget.id === "0") {
+          let currSelectedWidgets = await miro.board.selection.get();
+          currWidget = currSelectedWidgets[0];
+        }
+        else {
+          currWidget = selectedWidget;
+        }
+
+        await miro.board.widgets.deleteById({ id: currWidget.id });
+        let newShape = await miro.board.widgets.create({ ...currWidget, style: { ...currWidget.style, fontSize: currWidget.style.fontSize / 2 }, type: 'SHAPE' });
+        let metadata = await readData();
+        metadata[newShape[0].id] = (metadata[currWidget.id] ? metadata[currWidget.id] : { aliases: [], frames: [] });
+        delete metadata[currWidget.id];
+        await writeData(metadata);
+
+      }
+    }
+
+    if (['Lean Stories', 'Lean Stories+'].includes(getAppName()) && selectedWidget.type === "STICKER") {
+      widgetArray.push(stickiesToShape);
     }
 
     // If more than 1 widgets selected don't display sync button
