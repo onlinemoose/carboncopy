@@ -368,18 +368,13 @@ miro.onReady(async () => {
           await miro.requestAuthorization();
           await initializeSync();
         }
-        let currWidget;
 
-        if (selectedWidget.id === "0") {
-          let currSelectedWidgets = await miro.board.selection.get();
-          currWidget = currSelectedWidgets[0];
-        }
-        else {
-          currWidget = selectedWidget;
-        }
+        let currSelectedWidgets = await miro.board.selection.get();
+        let currWidget = currSelectedWidgets[0];
 
         await miro.board.widgets.deleteById({ id: currWidget.id });
         let newShape = await miro.board.widgets.create({ ...currWidget, style: { ...currWidget.style, fontSize: currWidget.style.fontSize / 2 }, type: 'SHAPE' });
+
         let metadata = await readData();
         metadata[newShape[0].id] = (metadata[currWidget.id] ? metadata[currWidget.id] : { aliases: [], frames: [] });
         delete metadata[currWidget.id];
