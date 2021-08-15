@@ -1,7 +1,4 @@
-let leanStoriesIcon =
-  '<svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" height="24" viewBox="0 0 24 24" width="24"><g><rect fill="none" height="24" width="24"/></g><g><g/><g><path d="M8,8H6v7c0,1.1,0.9,2,2,2h9v-2H8V8z"/><path d="M20,3h-8c-1.1,0-2,0.9-2,2v6c0,1.1,0.9,2,2,2h8c1.1,0,2-0.9,2-2V5C22,3.9,21.1,3,20,3z M20,11h-8V7h8V11z"/><path d="M4,12H2v7c0,1.1,0.9,2,2,2h9v-2H4V12z"/></g></g><g display="none"><g display="inline"/><g display="inline"><path d="M8,8H6v7c0,1.1,0.9,2,2,2h9v-2H8V8z"/><path d="M20,3h-8c-1.1,0-2,0.9-2,2v6c0,1.1,0.9,2,2,2h8c1.1,0,2-0.9,2-2V5C22,3.9,21.1,3,20,3z M20,11h-8V7h8V11z"/><path d="M4,12H2v7c0,1.1,0.9,2,2,2h9v-2H4V12z"/></g></g></svg>';
-
-let carbonCopyIcon =
+let icon =
   '<path d="M.01 0h24v24h-24V0z" fill="none"/><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>';
 
 let disabledIcon =
@@ -10,12 +7,27 @@ let disabledIcon =
 let selectIcon =
   '<path d="M0 0h24v24H0z" fill="none"/><path d="M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2zM7 17h10V7H7v10zm2-8h6v6H9V9z"/>';
 
-let stickiesToShapeIcon =
-  '<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M22 18v-2H8V4h2L7 1 4 4h2v2H2v2h4v8c0 1.1.9 2 2 2h8v2h-2l3 3 3-3h-2v-2h4zM10 8h6v6h2V8c0-1.1-.9-2-2-2h-6v2z"/></svg>';
-
 var appId;
 
 const syncWidgets = ["TEXT", "STICKER", "SHAPE", "CARD", "LINE"]; //IMAGE is another supported widget but there is a issue on metadata update
+
+var selectWidget, syncIcon, syncDisabledIcon, selectWidgetIcon, feedBackIcon;
+
+const isBottomPanel = () => {
+  return window.location.href.includes('bottom-panel.html');
+}
+
+const compareAllValues = (obj1, obj2, ignoreKeys = []) => {
+  let objectsAreNotSame = Object.keys(obj1).find(key => obj1[key] !== obj2[key] && !ignoreKeys.includes(key));
+  if (objectsAreNotSame) {
+    return false;
+  }
+  else {
+    return true;
+  }
+}
+
+const allEqual = arr => arr.every(v => v === arr[0]);
 
 const syncText = async (widgetsToSync, type) => {
 
@@ -150,7 +162,50 @@ const syncImageWidget = async (widgetToSync, allSyncableWidgets) => {
 
 }
 
+const isSyncableWidgets = (selectedWidgets) => {
+
+  if (!selectedWidgets) return false;
+
+  const nonSyncableWidget = selectedWidgets.find(wid => !syncWidgets.includes(wid.type));
+
+  if (nonSyncableWidget) return false;
+
+  const syncIds = selectedWidgets.map(wid => wid.metadata[appId]?.syncID);
+
+  const uniqueSyncIds = [...new Set(syncIds)];
+
+  if (uniqueSyncIds.length !== 1) return false;
+
+  return true;
+}
+
+
 const handleSync = async () => {
+
+  if (isBottomPanel()) {
+    const selectedWidgets = await miro.board.selection.get();
+
+    if (isSyncableWidgets(selectedWidgets)) {
+      selectWidget.style.display = "none";
+      if (selectedWidgets[0]?.metadata[appId]?.sync) {
+        syncIcon.style.display = "none";
+        syncDisabledIcon.style.display = "inline-block";
+        selectWidgetIcon.style.display = "inline-block";
+        selectWidgetIcon.style.opacity = "1";
+      } else {
+        syncIcon.style.display = "inline-block";
+        syncDisabledIcon.style.display = "none";
+        selectWidgetIcon.style.display = "inline-block";
+        selectWidgetIcon.style.opacity = "0.2";
+      }
+    } else {
+      selectWidget.style.display = "inline-block";
+      syncIcon.style.display = "none";
+      syncDisabledIcon.style.display = "none";
+      selectWidgetIcon.style.display = "none";
+    }
+
+  }
 
   try {
 
@@ -250,167 +305,123 @@ const handleSync = async () => {
   }
 }
 
-const initializeSync = async () => {
-  window.miroSyncData = await miro.board.widgets.get();
-  window.miroTagData = await miro.board.tags.get();
-
-  miro.addListener(miro.enums.event.SELECTION_UPDATED, handleSync);
-}
-
 miro.onReady(async () => {
+
   appId = await miro.getClientId();
   const authorized = await miro.isAuthorized();
 
-  if (authorized) {
-    await initializeSync();
+  if (!authorized) {
+    await miro.requestAuthorization();
+    location.reload();
+    return;
+  }
+  else {
+    miro.board.widgets.get().then(res => {
+      window.miroSyncData = res;
+    });
+    miro.board.tags.get().then(res => {
+      window.miroTagData = res;
+    });
   }
 
-  let extensionPoints = {};
-
-  const bottomBar = {
-    title: getAppName(),
-    svgIcon: leanStoriesIcon,
-    positionPriority: 100,
-    onClick: async () => {
-      const isAuthorized = await miro.isAuthorized();
-      if (!isAuthorized) {
-        await miro.requestAuthorization();
-        await initializeSync();
-      }
-
-      miro.board.ui.openLeftSidebar('sidebar.html');
-    }
+  miro.addListener(miro.enums.event.SELECTION_UPDATED, handleSync);
+  if (isBottomPanel()) {
+    handleSync();
+    init();
+    return;
   };
 
-  const getWidgetMenuItems = async (selectedWidgets, editmode) => {
-
-    let selectedWidget = selectedWidgets[0];
-
-    if (!selectedWidget) {
-      return;
-    }
-
-    let widgetArray = [];
-
-    let syncButton = {
-      tooltip: selectedWidget.metadata[appId]?.sync ? 'disable sync' : 'enable sync',
-      svgIcon: selectedWidget.metadata[appId]?.sync ? disabledIcon : carbonCopyIcon,
-      positionPriority: 100,
-      onClick: async () => {
-        const isAuthorized = await miro.isAuthorized();
-        if (!isAuthorized) {
-          await miro.requestAuthorization();
-          await initializeSync();
-        }
-
-        let widgetID;
-
-        let currSelectedWidgets = await miro.board.selection.get();
-        widgetID = currSelectedWidgets[0].id;
-
-        let metadata = {};
-        metadata[appId] = {
-          ...(currSelectedWidgets[0].metadata[appId] || {}),
-          sync: !Boolean(selectedWidget.metadata[appId]?.sync),
-          syncID: (selectedWidget.metadata[appId]?.sync ? "" : new Date().getTime())
-        };
-
-        miro.board.widgets.update(
-          {
-            ...currSelectedWidgets[0],
-            id: widgetID,
-            metadata: metadata
+  miro.initialize({
+    extensionPoints: {
+      bottomBar: {
+        title: 'Sync',
+        svgIcon: icon,
+        positionPriority: 100,
+        onClick: async () => {
+          const isAuthorized = await miro.isAuthorized();
+          if (!isAuthorized) {
+            await miro.requestAuthorization();
           }
-        );
 
-        // To reload context menu to reflect sync icon state
-        miro.board.selection.selectWidgets(currSelectedWidgets);
-      },
-    };
-
-    let selectButton = {
-      tooltip: 'select synced',
-      svgIcon: selectIcon,
-      positionPriority: 100,
-      onClick: async () => {
-        const isAuthorized = await miro.isAuthorized();
-        if (!isAuthorized) {
-          await miro.requestAuthorization();
-          await initializeSync();
+          miro.board.ui.openBottomPanel('bottom-panel.html', { width: 148 });
         }
-
-        let widgets = await miro.board.widgets.get();
-
-        let widgetID;
-
-        if (selectedWidget.id === "0") {
-          let currSelectedWidgets = await miro.board.selection.get();
-          widgetID = currSelectedWidgets[0].id;
-        }
-        else {
-          widgetID = selectedWidget.id;
-        }
-
-        let currWidget = widgets.filter(widget => widget.id === widgetID);
-        let syncID = currWidget[0].metadata[appId]?.syncID;
-        let selectableWidgets = widgets.filter(widget => widget.metadata[appId]?.syncID === syncID);
-        miro.board.selection.selectWidgets(selectableWidgets);
       }
-    }
+    },
 
-    let stickiesToShape = {
-      tooltip: 'Convert to shape',
-      svgIcon: stickiesToShapeIcon,
-      positionPriority: 90,
-      onClick: async () => {
-        const isAuthorized = await miro.isAuthorized();
-        if (!isAuthorized) {
-          await miro.requestAuthorization();
-          await initializeSync();
-        }
-        let currWidget;
-
-        if (selectedWidget.id === "0") {
-          let currSelectedWidgets = await miro.board.selection.get();
-          currWidget = currSelectedWidgets[0];
-        }
-        else {
-          currWidget = selectedWidget;
-        }
-
-        await miro.board.widgets.deleteById({ id: currWidget.id });
-        let newShape = await miro.board.widgets.create({ ...currWidget, style: { ...currWidget.style, fontSize: currWidget.style.fontSize / 2 }, type: 'SHAPE' });
-        let metadata = await readData();
-        metadata[newShape[0].id] = (metadata[currWidget.id] ? metadata[currWidget.id] : { aliases: [], frames: [] });
-        delete metadata[currWidget.id];
-        await writeData(metadata);
-
-      }
-    }
-
-    if (['Lean Stories', 'Lean Stories+'].includes(getAppName()) && selectedWidget.type === "STICKER") {
-      widgetArray.push(stickiesToShape);
-    }
-
-    // If more than 1 widgets selected don't display sync button
-    if (selectedWidgets && selectedWidgets.length === 1 && syncWidgets.includes(selectedWidget.type)) {
-      widgetArray.push(syncButton);
-      if (selectedWidget.metadata[appId]?.sync) {
-        widgetArray.push(selectButton);
-      }
-    }
-
-    return widgetArray;
-  };
-
-  if (['Lean Stories', 'Lean Stories+'].includes(getAppName())) {
-    extensionPoints['bottomBar'] = bottomBar;
-  }
-
-  if (['Carbon Copy', 'Lean Stories+'].includes(getAppName())) {
-    extensionPoints['getWidgetMenuItems'] = getWidgetMenuItems;
-  }
-
-  miro.initialize({ extensionPoints: extensionPoints });
+  });
 
 });
+
+const init = () => {
+
+  selectWidget = document.getElementById('select-widget');
+  syncIcon = document.getElementById('sync-icon');
+  syncDisabledIcon = document.getElementById('sync-disabled-icon');
+  selectWidgetIcon = document.getElementById('select-icon');
+  feedBackIcon = document.getElementById('feedback-icon');
+
+  syncIcon.addEventListener('click', async () => {
+    let widgetID;
+
+    let currSelectedWidgets = await miro.board.selection.get();
+    widgetID = currSelectedWidgets[0].id;
+
+    let metadata = {};
+    metadata[appId] = {
+      ...(currSelectedWidgets[0].metadata[appId] || {}),
+      sync: true,
+      syncID: new Date().getTime()
+    };
+
+    miro.board.widgets.update(
+      {
+        ...currSelectedWidgets[0],
+        id: widgetID,
+        metadata: metadata
+      }
+    );
+
+    handleSync();
+  });
+
+  syncDisabledIcon.addEventListener('click', async () => {
+
+    let currSelectedWidgets = await miro.board.selection.get();
+
+    for (let i = 0; i < currSelectedWidgets.length; i++) {
+      let metadata = {};
+      metadata[appId] = {
+        ...(currSelectedWidgets[i].metadata[appId] || {}),
+        sync: false,
+        syncID: ""
+      };
+
+      await miro.board.widgets.update(
+        {
+          ...currSelectedWidgets[i],
+          id: currSelectedWidgets[i].id,
+          metadata: metadata
+        }
+      );
+    }
+
+    handleSync();
+  });
+
+  selectWidgetIcon.addEventListener('click', async () => {
+    let widgets = await miro.board.widgets.get();
+
+    let currSelectedWidgets = await miro.board.selection.get();
+    let widgetID = currSelectedWidgets[0].id;
+
+    let currWidget = widgets.filter(widget => widget.id === widgetID);
+    let syncID = currWidget[0].metadata[appId]?.syncID;
+    if (!syncID) return;
+    let selectableWidgets = widgets.filter(widget => widget.metadata[appId]?.syncID === syncID);
+    miro.board.selection.selectWidgets(selectableWidgets);
+  });
+
+  feedBackIcon.addEventListener('click', async () => {
+    miro.board.ui.openModal('feedback-modal.html', { width: 400, height: 400 });
+  });
+}

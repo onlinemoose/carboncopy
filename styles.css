@@ -1,0 +1,86 @@
+body {
+    user-select: none; 
+}
+
+.sync-icon {
+    margin: 12px 8px 12px 16px;
+    display: none;
+    cursor: pointer;
+}
+
+.sync-icon:hover {
+    fill: rgba(66, 98, 255, 1);
+}
+
+.sync-disabled-icon {
+    margin: 12px 8px 12px 16px;
+    display: none;
+    cursor: pointer;
+}
+
+.sync-disabled-icon:hover {
+    fill: rgba(66, 98, 255, 1);
+}
+
+.select-icon {
+    margin: 12px 8px 12px 8px;
+    display: none;
+    cursor: pointer;
+}
+
+.select-icon:hover {
+    fill: rgba(66, 98, 255, 1);
+}
+
+.feedback-icon {
+    margin: 12px 16px 12px 8px;
+    cursor: pointer;
+}
+
+.feedback-icon:hover {
+    fill: rgba(66, 98, 255, 1);
+}
+
+.select-widget {
+    margin: 6px 8px 12px 16px;
+    width: 72px;
+    display: inline-block;
+    vertical-align: top;
+    font-weight: 600;
+}
+
+.feeback-modal {
+    margin: 16px;
+    max-width: 400px;
+}
+
+.feedback-header {
+    text-align: center;
+    font-weight: 500;
+}
+
+.feedback-input {
+    margin: 8px 0px 8px 0px;
+    width: 368px;
+}
+
+.multiline {
+    height: 70px !important;
+    resize: none;
+}
+
+.inline-block {
+    display: inline-flex;
+}
+
+.float-right {
+    float: right;
+}
+
+.send-button {
+    margin-left: 8px;
+}
+
+.privacy-policy {
+    margin-top: 12px;
+}
