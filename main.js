@@ -11,7 +11,7 @@ var appId;
 
 const syncWidgets = ["TEXT", "STICKER", "SHAPE", "CARD", "LINE"]; //IMAGE is another supported widget but there is a issue on metadata update
 
-var selectWidget, syncIcon, syncDisabledIcon, selectWidgetIcon, feedBackIcon;
+var syncWidget, deSyncWidget, selectWidget, copyWidget, feedBack;
 
 const isBottomPanel = () => {
   return window.location.href.includes('bottom-panel.html');
@@ -186,23 +186,24 @@ const handleSync = async () => {
     const selectedWidgets = await miro.board.selection.get();
 
     if (isSyncableWidgets(selectedWidgets)) {
-      selectWidget.style.display = "none";
       if (selectedWidgets[0]?.metadata[appId]?.sync) {
-        syncIcon.style.display = "none";
-        syncDisabledIcon.style.display = "inline-block";
-        selectWidgetIcon.style.display = "inline-block";
-        selectWidgetIcon.style.opacity = "1";
+        syncWidget.style.display = "none";
+        deSyncWidget.style.display = "flex";
+        selectWidget.style.display = "flex";
+        copyWidget.style.display = "flex"
       } else {
-        syncIcon.style.display = "inline-block";
-        syncDisabledIcon.style.display = "none";
-        selectWidgetIcon.style.display = "inline-block";
-        selectWidgetIcon.style.opacity = "0.2";
+        syncWidget.style.display = "flex";
+        syncWidget.style.opacity = 1;
+        deSyncWidget.style.display = "none";
+        selectWidget.style.display = "none";
+        copyWidget.style.display = "none"
       }
     } else {
-      selectWidget.style.display = "inline-block";
-      syncIcon.style.display = "none";
-      syncDisabledIcon.style.display = "none";
-      selectWidgetIcon.style.display = "none";
+      syncWidget.style.display = "flex";
+      syncWidget.style.opacity = 0.2;
+      deSyncWidget.style.display = "none";
+      selectWidget.style.display = "none";
+      copyWidget.style.display = "none"
     }
 
   }
@@ -333,17 +334,17 @@ miro.onReady(async () => {
 
   miro.initialize({
     extensionPoints: {
-      bottomBar: {
-        title: 'Sync',
-        svgIcon: icon,
-        positionPriority: 100,
+      toolbar: {
+        title: 'Carbon Copy',
+        librarySvgIcon: '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">' + icon + '</svg>',
+        toolbarSvgIcon: '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">' + icon + '</svg>',
         onClick: async () => {
           const isAuthorized = await miro.isAuthorized();
           if (!isAuthorized) {
             await miro.requestAuthorization();
           }
 
-          miro.board.ui.openBottomPanel('bottom-panel.html', { width: 148 });
+          miro.board.ui.openLeftSidebar('bottom-panel.html', { title: "Carbon Copy" });
         }
       }
     },
@@ -354,16 +355,20 @@ miro.onReady(async () => {
 
 const init = () => {
 
+  syncWidget = document.getElementById('sync-widget');
+  deSyncWidget = document.getElementById('desync-widget');
   selectWidget = document.getElementById('select-widget');
-  syncIcon = document.getElementById('sync-icon');
-  syncDisabledIcon = document.getElementById('sync-disabled-icon');
-  selectWidgetIcon = document.getElementById('select-icon');
-  feedBackIcon = document.getElementById('feedback-icon');
+  copyWidget = document.getElementById('clone-widget');
+  feedBack = document.getElementById('feedback-widget');
+  feedBack.style.display = "flex";
 
-  syncIcon.addEventListener('click', async () => {
+  syncWidget.addEventListener('click', async () => {
     let widgetID;
 
     let currSelectedWidgets = await miro.board.selection.get();
+
+    if (!currSelectedWidgets.length || !isSyncableWidgets(currSelectedWidgets)) return;
+
     widgetID = currSelectedWidgets[0].id;
 
     let metadata = {};
@@ -384,7 +389,7 @@ const init = () => {
     handleSync();
   });
 
-  syncDisabledIcon.addEventListener('click', async () => {
+  deSyncWidget.addEventListener('click', async () => {
 
     let currSelectedWidgets = await miro.board.selection.get();
 
@@ -408,7 +413,7 @@ const init = () => {
     handleSync();
   });
 
-  selectWidgetIcon.addEventListener('click', async () => {
+  selectWidget.addEventListener('click', async () => {
     let widgets = await miro.board.widgets.get();
 
     let currSelectedWidgets = await miro.board.selection.get();
@@ -421,7 +426,12 @@ const init = () => {
     miro.board.selection.selectWidgets(selectableWidgets);
   });
 
-  feedBackIcon.addEventListener('click', async () => {
-    miro.board.ui.openModal('feedback-modal.html', { width: 400, height: 400 });
+  copyWidget.addEventListener('click', async () => {
+    let currSelectedWidgets = await miro.board.selection.get();
+    miro.board.widgets.create({ ...currSelectedWidgets[0], x: (currSelectedWidgets[0].x + currSelectedWidgets[0].bounds.width + 50) });
+  });
+
+  feedBack.addEventListener('click', async () => {
+    miro.board.ui.openModal('feedback-modal.html', { width: 480, height: 440 });
   });
 }

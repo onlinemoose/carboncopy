@@ -3,13 +3,13 @@ body {
 }
 
 .sync-icon {
-    margin: 12px 8px 12px 16px;
-    display: none;
+    margin-top: 12px;
+    margin-left: 16px;
     cursor: pointer;
 }
 
-.sync-icon:hover {
-    fill: rgba(66, 98, 255, 1);
+.right-align-text {
+    text-align: right;
 }
 
 .sync-disabled-icon {
@@ -42,15 +42,27 @@ body {
 }
 
 .select-widget {
-    margin: 6px 8px 12px 16px;
-    width: 72px;
-    display: inline-block;
-    vertical-align: top;
-    font-weight: 600;
+    cursor: pointer;
+    padding: 0px 24px 0px 24px;
+    width: calc(100% - 48px);
+    display: none;
 }
 
-.feeback-modal {
-    margin: 16px;
+.select-widget:hover {
+    color: rgba(66, 98, 255, 1);
+}
+
+.select-widget:hover > .sync-icon {
+    fill: rgba(66, 98, 255, 1);
+}
+
+.top-row-filler {
+    height: 8px;
+    display: flex;
+}​
+
+.feedback-modal {
+    margin: 40px;
     max-width: 400px;
 }
 
@@ -61,7 +73,7 @@ body {
 
 .feedback-input {
     margin: 8px 0px 8px 0px;
-    width: 368px;
+    width: 100%;
 }
 
 .multiline {
@@ -83,4 +95,8 @@ body {
 
 .privacy-policy {
     margin-top: 12px;
+}
+
+.flex-grow {
+    flex-grow: 1;
 }
