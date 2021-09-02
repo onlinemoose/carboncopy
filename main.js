@@ -11,7 +11,8 @@ var appId;
 
 const syncWidgets = ["TEXT", "STICKER", "SHAPE", "CARD", "LINE"]; //IMAGE is another supported widget but there is a issue on metadata update
 
-var syncWidget, deSyncWidget, selectWidget, copyWidget, feedBack;
+var syncWidget, deSyncWidget, selectWidget, copyWidget, deleteWidget, feedBack, syncProp, syncPropHead;
+var disableSubMenu = false;
 
 const isBottomPanel = () => {
   return window.location.href.includes('bottom-panel.html');
@@ -187,23 +188,41 @@ const handleSync = async () => {
 
     if (isSyncableWidgets(selectedWidgets)) {
       if (selectedWidgets[0]?.metadata[appId]?.sync) {
+        disableSubMenu = false;
         syncWidget.style.display = "none";
         deSyncWidget.style.display = "flex";
-        selectWidget.style.display = "flex";
-        copyWidget.style.display = "flex"
+        selectWidget.style.opacity = 1;
+        copyWidget.style.opacity = 1;
+        deleteWidget.style.opacity = 1;
+        syncProp.style.pointerEvents = "auto";
+        syncProp.style.opacity = 1;
+        syncPropHead.style.pointerEvents = "auto";
+        syncPropHead.style.opacity = 1;
       } else {
+        disableSubMenu = true;
         syncWidget.style.display = "flex";
         syncWidget.style.opacity = 1;
         deSyncWidget.style.display = "none";
-        selectWidget.style.display = "none";
-        copyWidget.style.display = "none"
+        selectWidget.style.opacity = 0.2;
+        copyWidget.style.opacity = 0.2;
+        deleteWidget.style.opacity = 0.2;
+        syncProp.style.pointerEvents = "none";
+        syncProp.style.opacity = 0.2;
+        syncPropHead.style.pointerEvents = "none";
+        syncPropHead.style.opacity = 0.2;
       }
     } else {
+      disableSubMenu = true;
       syncWidget.style.display = "flex";
       syncWidget.style.opacity = 0.2;
       deSyncWidget.style.display = "none";
-      selectWidget.style.display = "none";
-      copyWidget.style.display = "none"
+      selectWidget.style.opacity = 0.2;
+      copyWidget.style.opacity = 0.2;
+      deleteWidget.style.opacity = 0.2;
+      syncProp.style.pointerEvents = "none";
+      syncProp.style.opacity = 0.2;
+      syncPropHead.style.pointerEvents = "none";
+      syncPropHead.style.opacity = 0.2;
     }
 
   }
@@ -258,7 +277,7 @@ const handleSync = async () => {
             let deletedWidgetId = oldTag.widgetIds.find(widgetId => !newTag.widgetIds.includes(widgetId));
             let deletedWidget = tagSyncableWidgets.find(widget => widget.id === deletedWidgetId);
             let assoicatedWidgets = tagSyncableWidgets.filter(widget =>
-              widget.metadata[appId].syncID === deletedWidget.metadata[appId].syncID
+              widget?.metadata[appId].syncID === deletedWidget?.metadata[appId].syncID
               && widget.id !== deletedWidget.id);
             let assoicatedWidgetIds = assoicatedWidgets.map(widget => widget.id);
             await miro.board.tags.update({
@@ -359,8 +378,11 @@ const init = () => {
   deSyncWidget = document.getElementById('desync-widget');
   selectWidget = document.getElementById('select-widget');
   copyWidget = document.getElementById('clone-widget');
+  deleteWidget = document.getElementById('delete-widget');
   feedBack = document.getElementById('feedback-widget');
   feedBack.style.display = "flex";
+  syncProp = document.getElementById('sync-prop');
+  syncPropHead = document.getElementById('sync-prop-head');
 
   syncWidget.addEventListener('click', async () => {
     let widgetID;
@@ -414,6 +436,7 @@ const init = () => {
   });
 
   selectWidget.addEventListener('click', async () => {
+    if (disableSubMenu) return;
     let widgets = await miro.board.widgets.get();
 
     let currSelectedWidgets = await miro.board.selection.get();
@@ -426,9 +449,44 @@ const init = () => {
     miro.board.selection.selectWidgets(selectableWidgets);
   });
 
+  const isOverlapping = (x, y, allWidgets, width, height) => {
+    return Boolean(allWidgets.find(widget => (Math.abs(Math.abs(widget.x) - Math.abs(x)) <= width
+      && Math.abs(Math.abs(widget.y) - Math.abs(y)) <= height)));
+  }
+
   copyWidget.addEventListener('click', async () => {
+    if (disableSubMenu) return;
     let currSelectedWidgets = await miro.board.selection.get();
-    miro.board.widgets.create({ ...currSelectedWidgets[0], x: (currSelectedWidgets[0].x + currSelectedWidgets[0].bounds.width + 50) });
+    let allWidgets = await miro.board.widgets.get();
+    let x = (currSelectedWidgets[0].x + currSelectedWidgets[0].bounds.width + 20);
+    while (true) {
+      if (!isOverlapping(x, currSelectedWidgets[0].y, allWidgets, currSelectedWidgets[0].bounds.width, currSelectedWidgets[0].bounds.height)) {
+        break;
+      }
+      x = x + currSelectedWidgets[0].bounds.width + 20;
+    }
+    let newWid = await miro.board.widgets.create({ ...currSelectedWidgets[0], x });
+    if (currSelectedWidgets[0].tags?.length) {
+      let tagId = Array.from(currSelectedWidgets[0].tags.map(tag => tag.id));
+      let boardTags = await miro.board.tags.get();
+
+      for (let i = 0; i < tagId.length; i++) {
+        let matchTag = boardTags.find(tag => tag.id === tagId[i]);
+        await miro.board.tags.update({
+          ...matchTag,
+          widgetIds: [...matchTag.widgetIds, newWid[0].id]
+        });
+      }
+
+    }
+    miro.showNotification("Duplicate is created");
+    miro.board.selection.selectWidgets(newWid);
+  });
+
+  deleteWidget.addEventListener('click', async () => {
+    if (disableSubMenu) return;
+    let currSelectedWidgets = await miro.board.selection.get();
+    miro.board.widgets.deleteById(currSelectedWidgets[0].id);
   });
 
   feedBack.addEventListener('click', async () => {

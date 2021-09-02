@@ -18,6 +18,11 @@ body {
     cursor: pointer;
 }
 
+.color-primary {
+    fill: rgba(66, 98, 255, 1);
+    color:  rgba(66, 98, 255, 1);
+}
+
 .sync-disabled-icon:hover {
     fill: rgba(66, 98, 255, 1);
 }
@@ -45,7 +50,7 @@ body {
     cursor: pointer;
     padding: 0px 24px 0px 24px;
     width: calc(100% - 48px);
-    display: none;
+    display: flex;
 }
 
 .select-widget:hover {
