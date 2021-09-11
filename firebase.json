@@ -1,32 +1,15 @@
 {
   "hosting": {
-    "public": "dist",
+    "public": "build",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    "headers": [
+    "rewrites": [
       {
         "source": "**",
-        "headers": [
-          {
-            "key": "X-Content-Type-Options",
-            "value": "nosniff"
-          },
-          {
-            "key": "Content-Security-Policy",
-            "value": "script-src 'self' 'unsafe-inline' https://miro.com https://cdn.jsdelivr.net https://www.gstatic.com "
-          },
-          {
-            "key": "Referrer-Policy",
-            "value": "same-origin"
-          },
-          {
-            "key": "Permissions-Policy",
-            "value": "geolocation=()"
-          }
-        ]
+        "destination": "/index.html"
       }
     ]
   }

@@ -1,0 +1,28 @@
+
+.sidebar__header {
+    padding: 24px 24px 0 24px;
+}
+
+.sidebar__divider{ 
+    margin: 8px;
+}
+
+.sidebar__bold {
+    font-weight: bold !important;
+}
+
+.sidebar__grid-space {
+    margin: 16px 0px !important;
+}
+
+.sidebar__grid-margin {
+    margin: 0px 16px !important;
+}
+
+.sidebar__float-right {
+    float: right;
+}
+
+.sidebar__parent-widget {
+    pointer-events: none;
+}

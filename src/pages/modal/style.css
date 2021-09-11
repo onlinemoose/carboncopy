@@ -1,0 +1,22 @@
+
+
+.modal__header {
+    text-align: center;
+    margin: 16px 0;
+}
+
+.modal__desc {
+    margin: 12px 0;
+}
+
+.modal__button {
+    width: 80px !important;
+    float: right;
+    margin: 0 0 0 8px !important;
+}
+
+.modal__text-area {
+    font-size: 14px !important;
+    padding: var(--space-xsmall) 12px var(--space-xsmall) !important;
+    font-family: inherit !important;
+}
