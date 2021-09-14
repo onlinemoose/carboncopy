@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import Link from '../../components/link';
 import Checkbox from '../../components/checkbox';
 import './style.css';
@@ -13,7 +13,6 @@ import { updateFirebaseWidgets } from '../../store/actions/board';
 import { isDisabled, isChecked, isIndeterminate, elementTypes, formatSyncData, isOverlapping, isParent, getFirebaseWidgetForId } from './helper';
 import { storage } from '../../services/firebase/firebase';
 import DeSyncButton from '../../components/iconButton/desync';
-import { syncService } from './syncService';
 import { cloneDeep } from 'lodash';
 
 const { miro } = window;
@@ -22,6 +21,7 @@ const Sidebar = () => {
 
     const [{ selection, firebaseWidgets }, dispatch] = useContext(AppContext);
     const [firebase, setFirebase] = useState();
+    const widgetCache = useRef();
 
     useEffect(() => {
         miro.onReady(async () => {
@@ -31,10 +31,6 @@ const Sidebar = () => {
 
             miro.addListener(miro.enums.event.SELECTION_UPDATED, async () => {
                 dispatch(selectionChanged(await miro.board.selection.get()));
-                syncService(firebaseRef, async () => {
-                    const firebaseWidgetsRef = await firebaseRef.getBoard();
-                    dispatch(updateFirebaseWidgets(firebaseWidgetsRef.data()))
-                });
             });
 
             dispatch(selectionChanged(await miro.board.selection.get()));
@@ -48,6 +44,10 @@ const Sidebar = () => {
 
         });
     }, [dispatch]);
+
+    useEffect(() => {
+        widgetCache.current = null;
+    }, [selection])
 
     const enableSync = () => {
         const widgets = formatSyncData(selection);
@@ -80,21 +80,23 @@ const Sidebar = () => {
         firebase.writeData({ widgetData: [...firebaseWidgets.widgetData, ...widgets] });
         dispatch(updateFirebaseWidgets({ widgetData: [...firebaseWidgets.widgetData, ...widgets] }));
 
+        miro.showNotification("Duplicate is created");
+        miro.board.selection.selectWidgets(newWid);
+
         if (selection[0].tags?.length) {
             let tagId = Array.from(selection[0].tags.map(tag => tag.id));
             let boardTags = await miro.board.tags.get();
 
+            let tagData = []
             for (let i = 0; i < tagId.length; i++) {
                 let matchTag = boardTags.find(tag => tag.id === tagId[i]);
-                await miro.board.tags.update({
+                tagData.push({
                     ...matchTag,
                     widgetIds: [...matchTag.widgetIds, newWid.id]
                 });
             }
-
+            await miro.board.tags.update(tagData);
         }
-        miro.showNotification("Duplicate is created");
-        miro.board.selection.selectWidgets(newWid);
     }
 
     const selectAllWidgets = () => {
@@ -129,11 +131,10 @@ const Sidebar = () => {
         const syncGroup = getFirebaseWidgetForId(selection[0].id, firebaseWidgets).map(({ id }) => id);
 
         const indeterminate = isIndeterminate(selection, type, firebaseWidgets);
-
         let widgetData = [];
         cloneDeep(firebaseWidgets.widgetData || []).forEach(wid => {
             if (parent ? syncGroup.includes(wid.id) : selectedIds.includes(wid.id)) {
-                let { syncAttributes } = wid;
+                let syncAttributes = Array.from(wid.syncAttributes || []);
                 switch (type) {
                     case elementTypes.textCheckBox:
                         if (value) {
@@ -190,6 +191,17 @@ const Sidebar = () => {
             }
             widgetData.push(cloneDeep(wid));
         });
+
+        if (indeterminate && !value) {
+            widgetCache.current = cloneDeep(firebaseWidgets.widgetData || []);
+        }
+
+        if (indeterminate && value && selection.length > 1 && widgetCache.current) {
+            firebase.writeData({ widgetData: widgetCache.current });
+            dispatch(updateFirebaseWidgets({ widgetData: widgetCache.current }));
+            widgetCache.current = null;
+            return;
+        }
 
         firebase.writeData({ widgetData });
         dispatch(updateFirebaseWidgets({ widgetData }));

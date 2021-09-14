@@ -7,6 +7,9 @@ export const syncService = async (firebase, updateUI) => {
 
     // Get latest board widget data
     const boardWidgets = await getSyncWidgets();
+    const boardWidgetIds = boardWidgets.map(({ id }) => id);
+    let syncTagData = await miro.board.tags.get();
+    let syncTagFlag = false;
 
     const firebaseWidgetsRef = await firebase.getBoard();
     let firebaseWidgets;
@@ -16,12 +19,12 @@ export const syncService = async (firebase, updateUI) => {
 
     if (!firebaseWidgetsRef.exists || !firebaseWidgets?.widgetData?.length) return;
 
+    firebaseWidgets.widgetData = firebaseWidgets.widgetData.filter(({ id }) => boardWidgetIds.includes(id));
+
     const modifiedWidgets = firebaseWidgets.widgetData.filter(widget => hasWidgetChanged(widget, boardWidgets));
 
     if (!modifiedWidgets.length) return;
-
     let newFirebaseData = Array.from(firebaseWidgets.widgetData);
-
     for (let i = 0; i < modifiedWidgets.length; i++) {
         const changedWidget = modifiedWidgets[i];
         const syncGroupIds = getFirebaseWidgetForId(changedWidget.id, firebaseWidgets).map(({ id }) => id);
@@ -33,10 +36,9 @@ export const syncService = async (firebase, updateUI) => {
             if (changedWidget.id === syncGroup[j].id) {
                 changeAttributes = getChanges(changedWidget, changedBoardWidget, changedWidget.syncAttributes);
             } else {
-                changeAttributes = getChanges(syncGroup[j].id, changedBoardWidget, changedWidget.syncAttributes);
+                changeAttributes = getChanges(syncGroup[j], changedBoardWidget, changedWidget.syncAttributes);
             }
             let newWidget = getWidgetById(boardWidgets, syncGroup[j].id);
-
             for (let k = 0; k < changeAttributes.length; k++) {
                 if (!getWidgetById(firebaseWidgets.widgetData, syncGroup[j].id).syncAttributes.includes(changeAttributes[k])) continue;
                 switch (changeAttributes[k]) {
@@ -50,10 +52,22 @@ export const syncService = async (firebase, updateUI) => {
                         break;
                     case "TAG": newWidget['tags'] = changedBoardWidget['tags'];
                         newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "tags", changedBoardWidget['tags']);
-                        await syncTags(changedWidget.id, syncGroup[j].id);
+                        syncTagData = syncTags(syncTagData, changedWidget.id, syncGroup[j].id);
+                        syncTagFlag = true;
                         break;
-                    case "DIM": newWidget['scale'] = changedBoardWidget['scale'];
-                        newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "scale", changedBoardWidget['scale']);
+                    case "DIM":
+                        if (changedBoardWidget.scale) {
+                            newWidget['scale'] = changedBoardWidget['scale'];
+                            newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "scale", changedBoardWidget['scale']);
+                        }
+                        if (changedBoardWidget.width) {
+                            newWidget['width'] = changedBoardWidget['width'];
+                            newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "width", changedBoardWidget['width']);
+                        }
+                        if (changedBoardWidget.height) {
+                            newWidget['height'] = changedBoardWidget['height'];
+                            newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "height", changedBoardWidget['height']);
+                        }
                         break;
                     default: break;
                 }
@@ -63,13 +77,14 @@ export const syncService = async (firebase, updateUI) => {
             }
         }
     }
-
+    if (syncTagFlag) {
+        await miro.board.tags.update(syncTagData);
+    }
     await firebase.writeData({ widgetData: newFirebaseData });
     updateUI();
 }
 
-const syncTags = async (sourceWidgetId, destinationWidgetId) => {
-    const boardTags = await miro.board.tags.get();
+const syncTags = (boardTags, sourceWidgetId, destinationWidgetId) => {
     const newBoardTags = boardTags.map(tag => {
         if (tag.widgetIds.includes(sourceWidgetId) && !tag.widgetIds.includes(destinationWidgetId)) {
             return {
@@ -77,13 +92,18 @@ const syncTags = async (sourceWidgetId, destinationWidgetId) => {
                 widgetIds: [...tag.widgetIds, destinationWidgetId]
             }
         }
+        else if (!tag.widgetIds.includes(sourceWidgetId) && tag.widgetIds.includes(destinationWidgetId)) {
+            return {
+                ...tag,
+                widgetIds: tag.widgetIds.filter(widId => widId !== destinationWidgetId)
+            }
+        }
         return tag;
     });
-    await miro.board.tags.update(newBoardTags);
+    return newBoardTags;
 }
 
 const hasWidgetChanged = (widget, boardWidgets) => {
-
     const { syncAttributes } = widget;
     const boardWidget = getWidgetById(boardWidgets, widget.id);
 
@@ -91,13 +111,17 @@ const hasWidgetChanged = (widget, boardWidgets) => {
         switch (attribute) {
             case "TEXT": return widget.plainText !== boardWidget.plainText || widget.text !== boardWidget.text;
             case "STYLE": return !isEqual(widget.style, boardWidget.style);
-            case "TAG": return !isEqual(widget.tags, boardWidget.tags);
-            case "DIM": return widget.scale !== boardWidget.scale;
+            case "TAG": return !isEqual(sortTagObject(widget.tags), sortTagObject(boardWidget.tags));
+            case "DIM": return widget.scale !== boardWidget.scale || widget.width !== boardWidget.width || widget.height !== boardWidget.height;
             default: return false;
         }
     });
-
     return Boolean(changes);
+}
+
+const sortTagObject = (tags) => {
+    tags.sort((a, b) => a.id > b.id ? 1 : -1);
+    return tags.map(({ color, id, title }) => ({ color, id, title }));
 }
 
 const getChanges = (firebaseWidget, changedBoardWidget, syncAttributes) => {
@@ -108,9 +132,14 @@ const getChanges = (firebaseWidget, changedBoardWidget, syncAttributes) => {
                 break;
             case "STYLE": if (!isEqual(changedBoardWidget.style, firebaseWidget.style)) changedAttributes.push(attribute);
                 break;
-            case "TAG": if (!isEqual(changedBoardWidget.tags, firebaseWidget.tags)) changedAttributes.push(attribute);
+            case "TAG": if (!isEqual(sortTagObject(changedBoardWidget.tags), sortTagObject(firebaseWidget.tags))) changedAttributes.push(attribute);
                 break;
-            case "DIM": if (changedBoardWidget.scale !== firebaseWidget.scale) changedAttributes.push(attribute);
+            case "DIM":
+                if (changedBoardWidget.scale !== firebaseWidget.scale
+                    || changedBoardWidget.width !== firebaseWidget.width
+                    || changedBoardWidget.height !== firebaseWidget.height) {
+                    changedAttributes.push(attribute);
+                }
                 break;
             default: break;
         }

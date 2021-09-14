@@ -118,8 +118,8 @@ export const getFirebaseWidgetForSelection = (selection, firebaseWidgets) => {
 }
 
 export const getFirebaseWidgetForId = (id, firebaseWidgets) => {
-    const { syncID } = (firebaseWidgets?.widgetData || []).find(wid => wid.id === id);
-    return (firebaseWidgets?.widgetData || []).filter(wid => wid.syncID === syncID);
+    const widget = (firebaseWidgets?.widgetData || []).find(wid => wid.id === id);
+    return (firebaseWidgets?.widgetData || []).filter(wid => wid.syncID === widget?.syncID);
 }
 
 export const isChecked = (selection, type, firebaseWidgets) => {
