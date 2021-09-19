@@ -42,10 +42,18 @@ export const syncService = async (firebase, updateUI) => {
             for (let k = 0; k < changeAttributes.length; k++) {
                 if (!getWidgetById(firebaseWidgets.widgetData, syncGroup[j].id).syncAttributes.includes(changeAttributes[k])) continue;
                 switch (changeAttributes[k]) {
-                    case "TEXT": newWidget['plainText'] = changedBoardWidget['plainText'];
-                        newWidget['text'] = changedBoardWidget['text'];
-                        newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "plainText", changedBoardWidget['plainText']);
-                        newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "text", changedBoardWidget['text']);
+                    case "TEXT":
+                        if (Object.keys(newWidget).includes('plainText')) {
+                            newWidget['plainText'] = changedBoardWidget['plainText'];
+                            newWidget['text'] = changedBoardWidget['text'];
+                            newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "plainText", changedBoardWidget['plainText']);
+                            newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "text", changedBoardWidget['text']);
+                        } else if (Object.keys(newWidget).includes('title')) {
+                            newWidget['title'] = changedBoardWidget['title'];
+                            newWidget['description'] = changedBoardWidget['description'];
+                            newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "title", changedBoardWidget['title']);
+                            newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "description", changedBoardWidget['description']);
+                        }
                         break;
                     case "STYLE": newWidget['style'] = changedBoardWidget['style'];
                         newFirebaseData = updateWidgetData(newFirebaseData, syncGroup[j].id, "style", changedBoardWidget['style']);
@@ -109,7 +117,8 @@ const hasWidgetChanged = (widget, boardWidgets) => {
 
     let changes = syncAttributes.find(attribute => {
         switch (attribute) {
-            case "TEXT": return widget.plainText !== boardWidget.plainText || widget.text !== boardWidget.text;
+            case "TEXT": return widget.plainText !== boardWidget.plainText || widget.text !== boardWidget.text
+                || widget.title !== boardWidget.title || widget.description !== boardWidget.description;
             case "STYLE": return !isEqual(widget.style, boardWidget.style);
             case "TAG": return !isEqual(sortTagObject(widget.tags), sortTagObject(boardWidget.tags));
             case "DIM": return widget.scale !== boardWidget.scale || widget.width !== boardWidget.width || widget.height !== boardWidget.height;
@@ -128,7 +137,9 @@ const getChanges = (firebaseWidget, changedBoardWidget, syncAttributes) => {
     let changedAttributes = [];
     syncAttributes.forEach(attribute => {
         switch (attribute) {
-            case "TEXT": if (changedBoardWidget.plainText !== firebaseWidget.plainText) changedAttributes.push(attribute);
+            case "TEXT": if (changedBoardWidget.plainText !== firebaseWidget.plainText
+                || changedBoardWidget.title !== firebaseWidget.title
+                || changedBoardWidget.description !== firebaseWidget.description) changedAttributes.push(attribute);
                 break;
             case "STYLE": if (!isEqual(changedBoardWidget.style, firebaseWidget.style)) changedAttributes.push(attribute);
                 break;
