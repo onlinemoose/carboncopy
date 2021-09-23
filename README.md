@@ -1,4 +1,4 @@
-# Carbon copy, Leanstories & Leanstories+
+# Carbon copy
 Please switch to respective branch, main branch no longer hosts live code
 
 `Carbon Copy`: https://github.com/onlinemoose/carboncopy/tree/carboncopy
