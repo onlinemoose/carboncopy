@@ -138,6 +138,7 @@ const getChanges = (firebaseWidget, changedBoardWidget, syncAttributes) => {
     syncAttributes.forEach(attribute => {
         switch (attribute) {
             case "TEXT": if (changedBoardWidget.plainText !== firebaseWidget.plainText
+                || changedBoardWidget.text !== firebaseWidget.text
                 || changedBoardWidget.title !== firebaseWidget.title
                 || changedBoardWidget.description !== firebaseWidget.description) changedAttributes.push(attribute);
                 break;
