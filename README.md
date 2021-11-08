@@ -1,3 +1,5 @@
+# All branches except carboncopy is obselete
+
 # Carbon copy
 Please switch to respective branch, main branch no longer hosts live code
 
