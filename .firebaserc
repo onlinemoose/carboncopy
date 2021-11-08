@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "carboncopy-53bd1"
-  }
+    "development": "carboncopy-4f14e",
+    "production": "carboncopy-53bd1"
+  },
+  "targets": {}
 }

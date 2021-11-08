@@ -71,6 +71,10 @@ export const showNotification = (message) => {
     return miro.showNotification(message);
 }
 
+export const showErrorNotification = message => {
+    return miro.showErrorNotification(message);
+}
+
 export const selectWidget = (widgetId) => {
     return miro.board.selection.selectWidgets(widgetId);
 }

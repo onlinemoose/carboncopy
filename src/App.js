@@ -6,7 +6,7 @@ import Modal from './pages/modal';
 import Sidebar from './pages/sidebar';
 import 'mirotone/dist/styles.css';
 
-window.firebase.initializeApp({ projectId: 'carboncopy-53bd1' });
+window.firebase.initializeApp({ projectId: process.env.REACT_APP_PROJECT_ID });
 
 const App = () => (
   <AppProvider>

@@ -8,18 +8,22 @@ import DuplicateButton from '../../components/iconButton/duplicate';
 import SelectButton from '../../components/iconButton/select';
 import FeedbackButton from '../../components/iconButton/feedback';
 import { AppContext } from '../../store';
-import { selectionChanged } from '../../store/actions/selection';
+import { selectionChanged, setDeferSelection } from '../../store/actions/selection';
 import { updateFirebaseWidgets } from '../../store/actions/board';
 import { isDisabled, isChecked, isIndeterminate, elementTypes, formatSyncData, isOverlapping, isParent, getFirebaseWidgetForId } from './helper';
 import { storage } from '../../services/firebase/firebase';
 import DeSyncButton from '../../components/iconButton/desync';
 import { cloneDeep } from 'lodash';
+import AddButton from '../../components/iconButton/add';
+import { showErrorNotification, showNotification } from '../../services/miro/manipulate';
+import StopButton from '../../components/iconButton/stop';
+import { widgetTypes } from '../../services/miro/consts';
 
 const { miro } = window;
 
 const Sidebar = () => {
 
-    const [{ selection, firebaseWidgets }, dispatch] = useContext(AppContext);
+    const [{ selection, deferSelection, deferredSelection, firebaseWidgets }, dispatch] = useContext(AppContext);
     const [firebase, setFirebase] = useState();
     const widgetCache = useRef();
 
@@ -47,7 +51,29 @@ const Sidebar = () => {
 
     useEffect(() => {
         widgetCache.current = null;
-    }, [selection])
+    }, [selection]);
+
+    useEffect(() => {
+        if (deferSelection && deferredSelection && deferredSelection.length) {
+            const syncedWidget = firebaseWidgets.widgetData.find(widget =>
+                widget.id === deferredSelection[0].id
+            );
+            if (syncedWidget) {
+                //showErrorNotification('Widget is already synced');
+                return;
+            }
+            if (selection[0].type !== deferredSelection[0].type ||
+                !Object.keys(widgetTypes).includes(deferredSelection[0].type)) {
+                showErrorNotification('Incompatible widget for sync');
+                return;
+            }
+            const matchingFirebaseWid = firebaseWidgets.widgetData.find(({ id }) => id === selection[0].id);
+            const widgets = formatSyncData([deferredSelection[0]], matchingFirebaseWid.syncID, matchingFirebaseWid.syncAttributes);
+            firebase.writeData({ widgetData: [...firebaseWidgets.widgetData, ...widgets] });
+            dispatch(updateFirebaseWidgets({ widgetData: [...firebaseWidgets.widgetData, ...widgets] }));
+            showNotification('Widget added successfully to sync group');
+        }
+    }, [deferSelection, deferredSelection, firebaseWidgets, firebase, selection, dispatch]);
 
     const enableSync = () => {
         const widgets = formatSyncData(selection);
@@ -207,6 +233,15 @@ const Sidebar = () => {
         dispatch(updateFirebaseWidgets({ widgetData }));
     }
 
+    const addWidgets = () => {
+        showNotification('Add widgets to sync group');
+        dispatch(setDeferSelection(true));
+    }
+
+    const stopAddWidgets = () => {
+        dispatch(setDeferSelection(false));
+    }
+
     return (
         <>
             <h3 className="h3 sidebar__header sidebar__bold">CarbonCopy</h3>
@@ -229,7 +264,13 @@ const Sidebar = () => {
                 </div>
             </div>
             <div className="grid sidebar__grid-margin">
-                <div className="cs1 ce6"></div>
+                <div className="cs1 ce6">
+                    {!isDisabled(selection, elementTypes.deSyncButton, firebaseWidgets) &&
+                        (deferSelection ?
+                            <StopButton onClick={stopAddWidgets} />
+                            : <AddButton onClick={addWidgets} />)
+                    }
+                </div>
                 <div className="cs7 ce12">
                     <DuplicateButton
                         onClick={duplicateWidget}

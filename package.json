@@ -6,6 +6,7 @@
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
+    "env-cmd": "^10.1.0",
     "lodash": "^4.17.21",
     "mirotone": "^2.0.0",
     "react": "^17.0.2",
@@ -17,9 +18,14 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:production": "env-cmd -f .env.production npm run build",
+    "build:development": "env-cmd -f .env.development npm run build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dist": "npm run build && firebase deploy"
+    "deploy:production": "firebase use production && firebase deploy",
+    "deploy:development": "firebase use development && firebase deploy",
+    "dist:production": "npm run build:production && npm run deploy:production",
+    "dist:development": "npm run build:development && npm run deploy:development"
   },
   "eslintConfig": {
     "extends": [

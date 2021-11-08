@@ -128,7 +128,7 @@ export const isChecked = (selection, type, firebaseWidgets) => {
 
     if (!firebaseWids.length) return false;
 
-    const isParentWid = isParent(selection, firebaseWidgets);
+    // const isParentWid = isParent(selection, firebaseWidgets);
 
     switch (type) {
         case elementTypes.textCheckBox: return Boolean(firebaseWids.filter(wid => wid.syncAttributes.includes('TEXT')).length);
