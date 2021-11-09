@@ -16,7 +16,7 @@ import DeSyncButton from '../../components/iconButton/desync';
 import { cloneDeep } from 'lodash';
 import AddButton from '../../components/iconButton/add';
 import { showErrorNotification, showNotification } from '../../services/miro/manipulate';
-import StopButton from '../../components/iconButton/stop';
+import CancelButton from '../../components/iconButton/cancel';
 import { widgetTypes } from '../../services/miro/consts';
 
 const { miro } = window;
@@ -72,6 +72,7 @@ const Sidebar = () => {
             firebase.writeData({ widgetData: [...firebaseWidgets.widgetData, ...widgets] });
             dispatch(updateFirebaseWidgets({ widgetData: [...firebaseWidgets.widgetData, ...widgets] }));
             showNotification('Widget added successfully to sync group');
+            dispatch(setDeferSelection(false));
         }
     }, [deferSelection, deferredSelection, firebaseWidgets, firebase, selection, dispatch]);
 
@@ -234,7 +235,7 @@ const Sidebar = () => {
     }
 
     const addWidgets = () => {
-        showNotification('Add widgets to sync group');
+        showNotification('Add widget to sync group');
         dispatch(setDeferSelection(true));
     }
 
@@ -267,7 +268,7 @@ const Sidebar = () => {
                 <div className="cs1 ce6">
                     {!isDisabled(selection, elementTypes.deSyncButton, firebaseWidgets) &&
                         (deferSelection ?
-                            <StopButton onClick={stopAddWidgets} />
+                            <CancelButton onClick={stopAddWidgets} />
                             : <AddButton onClick={addWidgets} />)
                     }
                 </div>

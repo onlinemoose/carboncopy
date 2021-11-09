@@ -14,6 +14,7 @@
 
 .icon-button__icon {
     margin-left: 12px;
+    margin-top: -2px;
 }
 
 .icon-button:hover {
