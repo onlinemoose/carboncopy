@@ -65,6 +65,8 @@ const Sidebar = () => {
             if (selection[0].type !== deferredSelection[0].type ||
                 !Object.keys(widgetTypes).includes(deferredSelection[0].type)) {
                 showErrorNotification('Incompatible widget for sync');
+                dispatch(setDeferSelection(false));
+                dispatch(selectionChanged([]));
                 return;
             }
             const matchingFirebaseWid = firebaseWidgets.widgetData.find(({ id }) => id === selection[0].id);
